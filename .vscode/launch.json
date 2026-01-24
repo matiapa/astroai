@@ -28,6 +28,7 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             },
+            "envFile": "${workspaceFolder}/.env",
             "args": [
                 "web",
                 "agents"

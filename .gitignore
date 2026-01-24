@@ -1,3 +1,6 @@
 __pycache__/
 *.pkl
 .env
+.adk
+tmp/
+.DS_Store

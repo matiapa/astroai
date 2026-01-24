@@ -3,16 +3,18 @@
 AstroGuide - An AI-powered astronomical tour guide agent.
 
 This agent acts as an expert astronomer providing engaging "tourist information"
-about celestial objects visible through a telescope. It analyzes telescope images
-using plate solving and catalog queries, then combines this data with its knowledge
-and web searches to create fascinating narratives about what the user is seeing.
+about celestial objects visible through a telescope. It captures images from a webcam, uses plate solving and catalog 
+queries, then combines this data with its knowledge and web searches to create 
+fascinating narratives about what the user is seeing.
 """
 
 import sys
+import io
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image
+import google.genai.types as types
+from google.adk.tools import FunctionTool
 
 # Add project root to path so we can import from src
 project_root = Path(__file__).parent.parent.parent
@@ -24,23 +26,20 @@ from google.adk.tools import google_search
 from tools.analyze_image.analyze_image_tool import analyze_image
 
 
-def analyze_telescope_image(
-    image: Image.Image,
+def capture_and_analyze_sky(
     search_radius: Optional[float] = None,
-    magnitude_limit: float = 12.0
+    magnitude_limit: Optional[float] = 8.0
 ) -> dict:
     """
-    Analyzes an astronomical image to identify celestial objects.
+    Captures an image from the telescope camera and analyzes it to identify celestial objects.
     
-    This tool performs plate solving to determine exact sky coordinates,
-    then queries astronomical databases (SIMBAD, Hipparcos) to identify
-    all visible celestial objects in the field of view.
-    
+    This tool captures a live image from the connected webcam/camera, then performs plate solving to determine exact sky coordinates 
+    and queries astronomical databases to identify all visible celestial objects.
+        
     Args:
-        image: The telescope image to analyze (PIL Image)
         search_radius: Search radius in degrees for finding objects. 
                       If not provided, it's auto-calculated from the field of view.
-        magnitude_limit: Only include objects brighter than this magnitude (default: 12.0).
+        magnitude_limit: Only include objects brighter than this magnitude (default: 8.0).
                         Lower values = fewer but brighter objects.
                         Higher values = more objects including fainter ones.
     
@@ -48,7 +47,8 @@ def analyze_telescope_image(
         A dictionary containing:
         - success: Whether the analysis succeeded
         - error: Error message if success is False
-        - annotated_image: PIL Image with objects marked and labeled
+        - captured_image: types.Part with raw image captured from webcam (for LLM vision)
+        - annotated_image: types.Part with annotated image showing objects marked and labeled (for LLM vision)
         - center: Sky coordinates of the image center (RA/DEC)
         - field_of_view: Image dimensions in degrees and arcminutes  
         - objects: List of identified objects with:
@@ -63,7 +63,8 @@ def analyze_telescope_image(
     Example result:
         {
             "success": True,
-            "annotated_image": <PIL.Image>,
+            "captured_image": <types.Part with image/png>,
+            "annotated_image": <types.Part with image/png>,
             "center": {"ra_deg": 84.25, "dec_deg": -1.14, "ra_hms": "5h 37m 1s", "dec_dms": "-1° 8' 37\""},
             "field_of_view": {"width_arcmin": 110.3, "height_arcmin": 109.4},
             "objects": [
@@ -74,92 +75,46 @@ def analyze_telescope_image(
             "object_count": 42
         }
     """
+    # Call the analyze_image function which captures from webcam
     result = analyze_image(
-        image=image,
         radius=search_radius,
         mag_limit=magnitude_limit,
         verbose=False  # Suppress logs when used as agent tool
     )
+    
+    # Convert images to types.Part for proper multimodal handling
+    # This allows Gemini to actually "see" the images using its vision capabilities
+    if result.get("success"):
+        for key in ["captured_image", "annotated_image"]:
+            if result.get(key):
+                try:
+                    buffered = io.BytesIO()
+                    result[key].save(buffered, format="PNG")
+                    # Create a types.Part with inline binary data
+                    result[key] = types.Part.from_bytes(
+                        data=buffered.getvalue(),
+                        mime_type="image/png"
+                    )
+                except Exception as e:
+                    result[key] = None
+                    result[f"{key}_error"] = f"Failed to encode image: {str(e)}"
+    
     return result
 
+capture_and_analyze_sky_tool = FunctionTool(func=capture_and_analyze_sky)
+
+# Read the prompt from the markdown file
+with open("./agents/astro_guide/prompt.md", "r") as f:
+    prompt = f.read()
 
 # Define the root agent
 root_agent = Agent(
-    model="gemini-2.0-flash",
+    model="gemini-3-flash-preview",
     name="astro_guide",
-    description="Un astrónomo experto y guía turístico del cielo que analiza imágenes de telescopio y brinda narrativas fascinantes sobre los objetos celestes.",
-    instruction="""Eres AstroGuide, un astrónomo experto apasionado por compartir las maravillas del universo. 
-Tu rol es ser un guía turístico del cielo nocturno, transformando datos técnicos en narrativas fascinantes.
-
-## Tu Personalidad
-- Entusiasta pero accesible, como un profesor apasionado
-- Usas metáforas y comparaciones para conceptos complejos
-- Compartes anécdotas históricas, mitología y curiosidades
-- Celebras cada descubrimiento con genuino asombro
-- Hablas en español de manera natural y cercana
-
-## Cómo Responder a "¿Qué estoy viendo?"
-
-Cuando el usuario te pregunte qué está viendo y te dé una imagen:
-
-1. **PRIMERO**: Usa `analyze_telescope_image` con la imagen. Esta herramienta:
-   - Hace plate-solving para determinar coordenadas exactas
-   - Consulta catálogos astronómicos (SIMBAD, Hipparcos)
-   - Retorna la imagen anotada + lista de objetos identificados
-
-2. **SEGUNDO**: Analiza los resultados e identifica:
-   - Los objetos más interesantes (nebulosas, galaxias, cúmulos > estrellas comunes)
-   - Patrones (muchas estrellas azules jóvenes? gigantes rojas?)
-   - La región del cielo (constelación, región de formación estelar)
-   - Objetos notables (variables, binarias, con nombres propios)
-
-3. **TERCERO**: Si algún objeto es particularmente interesante, usa `google_search` 
-   para buscar mitología, historia o descubrimientos recientes.
-
-4. **CUARTO**: Construye tu respuesta como un relato fascinante:
-
-### Estructura de tu Respuesta:
-
-**Apertura dramática**: Ubica al usuario en el cosmos. Menciona la constelación o región.
-
-**Los protagonistas**: Presenta 3-5 objetos más interesantes:
-- Objetos de cielo profundo sobre estrellas individuales
-- Estrellas con historias interesantes (variables, binarias, nombres propios)
-- Los más brillantes o cercanos
-
-Para cada objeto, incluye:
-- Nombre (y significado si lo tiene)
-- Por qué es especial
-- Datos que generen asombro (distancia, tamaño, edad)
-- Una anécdota, mito o dato curioso
-
-**Contexto cósmico**: Qué región están observando y qué la hace especial.
-
-**Cierre inspirador**: Algo que invite a reflexionar o seguir explorando.
-
-**IMPORTANTE**: Menciona que hay una imagen anotada disponible donde pueden ver los objetos marcados.
-
-## Ejemplos de Cómo Expresar Datos
-
-En lugar de: "HD 36779 es una estrella tipo espectral B2/3IV/V a 1207 años luz"
-Di: "Esa luz azulada brillante es HD 36779, una estrella joven y masiva que arde 
-con la intensidad de miles de soles. Su luz partió cuando los vikingos navegaban 
-los mares del norte, hace unos 1,200 años, y recién ahora llega a tu telescopio."
-
-En lugar de: "V* VV Ori es una binaria eclipsante"
-Di: "¡Mira VV Orionis! Es un vals cósmico: dos estrellas azules gigantes 
-orbitándose tan cerca que una eclipsa a la otra cada pocos días."
-
-## Reglas
-- SIEMPRE usa `analyze_telescope_image` primero con imágenes
-- NO inventes datos que no estén en los resultados
-- SÍ enriquece con tu conocimiento general de astronomía
-- Si falla, explica amablemente qué pasó y sugiere soluciones
-
-¡Tu misión es despertar el asombro cósmico en cada observación!
-""",
+    description="Un astrónomo experto y guía turístico del cielo que captura imágenes del telescopio y brinda narrativas fascinantes sobre los objetos celestes.",
+    instruction=prompt,
     tools=[
-        analyze_telescope_image,
-        google_search,
+        capture_and_analyze_sky_tool,
+        # google_search,
     ],
 )

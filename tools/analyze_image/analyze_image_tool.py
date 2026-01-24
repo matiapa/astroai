@@ -1,42 +1,19 @@
-"""
-Astronomical image annotator using Astrometry.net plate solving and Vizier catalogs.
-
-This module provides the analyze_image function for use as a tool in Google ADK agents.
-It receives a PIL Image, performs plate solving and catalog queries, and returns
-the annotated image along with metadata about the celestial objects found.
-
-Configuration via environment variables:
-    ASTROMETRY_API_KEY: API key for Astrometry.net (required)
-    ASTROMETRY_TIMEOUT: Timeout in seconds for plate solving (default: 120)
-    ASTROMETRY_USE_CACHE: Whether to cache plate solving results (default: true)
-
-Usage:
-    from annotator import analyze_image
-    from PIL import Image
-    
-    img = Image.open("telescope_image.png")
-    result = analyze_image(img, radius=1.5, mag_limit=8.0)
-    
-    if result["success"]:
-        annotated_img = result["annotated_image"]  # PIL.Image
-        objects = result["objects"]  # List of celestial objects
-"""
-
 import os
 import io
-import hashlib
-import pickle
 import tempfile
+import json
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 
+import cv2
 from astroquery.astrometry_net import AstrometryNet
 from astroquery.vizier import Vizier
 from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 import astropy.units as u
+from astropy.stats import sigma_clipped_stats
 import numpy as np
 from PIL import Image as PILImage, ImageDraw, ImageFont
 import dotenv
@@ -51,10 +28,14 @@ dotenv.load_dotenv()
 def _get_config():
     """Get configuration from environment variables."""
     return {
+        # Astrometry.net configuration
         "api_key": os.environ.get("ASTROMETRY_API_KEY"),
         "timeout": int(os.environ.get("ASTROMETRY_TIMEOUT", "120")),
-        "use_cache": os.environ.get("ASTROMETRY_USE_CACHE", "true").lower() in ("true", "1", "yes"),
-        "cache_dir": os.environ.get("ASTROMETRY_CACHE_DIR", tempfile.gettempdir()),
+        # Webcam configuration
+        "webcam_index": int(os.environ.get("WEBCAM_INDEX", "0")),
+        "webcam_width": int(os.environ.get("WEBCAM_WIDTH", "0")) or None,  # 0 means use native
+        "webcam_height": int(os.environ.get("WEBCAM_HEIGHT", "0")) or None,
+        "webcam_warmup_frames": int(os.environ.get("WEBCAM_WARMUP_FRAMES", "5")),
     }
 
 
@@ -81,43 +62,85 @@ def _dec_to_dms(dec_deg: float) -> str:
     return f"{sign}{d}° {m}' {s:.2f}\""
 
 
-def _get_image_hash(image: PILImage.Image) -> str:
-    """Generate a hash of the image for caching purposes."""
-    img_bytes = io.BytesIO()
-    image.save(img_bytes, format='PNG')
-    return hashlib.md5(img_bytes.getvalue()).hexdigest()[:12]
 
 
-def _get_cache_path(image: PILImage.Image, cache_dir: str) -> str:
-    """Get the cache file path for a given image."""
-    image_hash = _get_image_hash(image)
-    return os.path.join(cache_dir, f".platesolve_cache_{image_hash}.pkl")
+# =============================================================================
+# Webcam capture
+# =============================================================================
 
+def _capture_from_webcam(config: Dict[str, Any], log) -> Optional[PILImage.Image]:
+    """
+    Capture a single frame from the webcam.
+    
+    Works with both physical cameras (e.g., connected to a telescope) and 
+    virtual cameras (e.g., OBS Virtual Camera streaming from Stellarium).
+    
+    Args:
+        config: Configuration dictionary with webcam settings
+        log: Logging function
+    
+    Returns:
+        PIL.Image if capture successful, None otherwise
+    """
+    camera_index = config["webcam_index"]
+    width = config["webcam_width"]
+    height = config["webcam_height"]
+    warmup_frames = config["webcam_warmup_frames"]
+        
+    # Open the camera
+    cap = cv2.VideoCapture(camera_index)
+    
+    if not cap.isOpened():
+        log(f"Error: Could not open camera at index {camera_index}")
+        return None
+    
+    try:
+        # Set resolution if specified
+        if width is not None:
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        if height is not None:
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # Get actual camera properties
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # Warmup: skip initial frames to allow camera to adjust
+        if warmup_frames > 0:
+            log(f"Camera warmup: skipping {warmup_frames} frames...")
+            for _ in range(warmup_frames):
+                cap.read()
+        
+        # Capture the actual frame
+        log("Capturing frame...")
+        ret, frame = cap.read()
+        
+        if not ret or frame is None:
+            log("Error: Failed to capture frame from camera")
+            return None
+        
+        # Convert from BGR (OpenCV) to RGB (PIL)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Convert to PIL Image
+        image = PILImage.fromarray(frame_rgb)
+        
+        return image
+        
+    finally:
+        cap.release()
 
 # =============================================================================
 # Plate solving
 # =============================================================================
 
-def _plate_solve(image: PILImage.Image, api_key: str, timeout: int, use_cache: bool, cache_dir: str, log):
+def _plate_solve(image: PILImage.Image, api_key: str, timeout: int, log):
     """
     Perform plate solving on an image using Astrometry.net.
-    Results are cached to avoid re-solving the same image.
     
     Returns:
         WCS header if successful, None otherwise
     """
-    cache_path = _get_cache_path(image, cache_dir)
-    
-    # Try to load from cache
-    if use_cache and os.path.exists(cache_path):
-        try:
-            with open(cache_path, 'rb') as f:
-                cached_data = pickle.load(f)
-            log(f"Loaded plate solving results from cache: {cache_path}")
-            return cached_data['wcs_header']
-        except Exception as e:
-            log(f"Failed to load cache, re-solving: {e}")
-    
     # Save image to temp file for Astrometry.net
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
         image.save(tmp, format='PNG')
@@ -132,20 +155,6 @@ def _plate_solve(image: PILImage.Image, api_key: str, timeout: int, use_cache: b
         wcs_header = ast.solve_from_image(tmp_path, solve_timeout=timeout)
         
         if wcs_header:
-            log("Plate solving successful!")
-            # Save to cache
-            if use_cache:
-                try:
-                    cache_data = {
-                        'wcs_header': wcs_header,
-                        'timestamp': datetime.now().isoformat()
-                    }
-                    with open(cache_path, 'wb') as f:
-                        pickle.dump(cache_data, f)
-                    log(f"Cached plate solving results to: {cache_path}")
-                except Exception as e:
-                    log(f"Warning: Failed to cache results: {e}")
-            
             return wcs_header
         else:
             log("Plate solving failed - could not solve the image")
@@ -227,16 +236,17 @@ _OTYPE_DESCRIPTIONS = {
 }
 
 
-def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) -> List[Dict[str, Any]]:
+def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Query SIMBAD and Vizier for objects near the given coordinates.
     
     Returns:
-        List of objects with name, ra, dec, magnitude, and other metadata
+         Tuple(objects, discarded_objects)
     """
     coord = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame='icrs')
     
     objects = []
+    discarded_objects = []
     seen_names = set()
     seen_hip_ids = set()
     seen_ngc_names = set()
@@ -245,8 +255,9 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
     log("Querying SIMBAD database...")
     try:
         custom_simbad = Simbad()
-        custom_simbad.add_votable_fields('V', 'B', 'otype', 'otypes', 'sp', 'morphtype', 'dim', 'plx_value', 'ids')
-        custom_simbad.ROW_LIMIT = 500
+        # Add Gaia G magnitude (flux(G)) to fields
+        custom_simbad.add_votable_fields('V', 'B', 'flux(G)', 'otype', 'otypes', 'sp', 'morphtype', 'dim', 'plx_value', 'ids')
+        custom_simbad.ROW_LIMIT = 1000
         
         result = custom_simbad.query_region(coord, radius=radius * u.deg)
         
@@ -255,7 +266,15 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
             for row in result:
                 try:
                     name = str(row['main_id']).strip()
-                    if not name or name in seen_names:
+                    if not name:
+                        continue
+                    if name in seen_names:
+                        discarded_objects.append({'name': name, 'reason': 'Duplicate name', 'source': 'SIMBAD'})
+                        continue
+                    
+                    # Filter out IRAS and 2MASS objects (Infrared sources)
+                    if name.startswith('IRAS') or name.startswith('2MASS'):
+                        discarded_objects.append({'name': name, 'reason': 'Infrared source (IRAS/2MASS)', 'source': 'SIMBAD'})
                         continue
                     
                     # Get coordinates
@@ -270,13 +289,14 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
                                     c = SkyCoord(str(ra_val), str(dec_val), unit=(u.hourangle, u.deg))
                                     obj_ra, obj_dec = c.ra.deg, c.dec.deg
                                 except:
-                                    continue
+                                    pass
                     
                     if obj_ra is None or obj_dec is None:
+                        discarded_objects.append({'name': name, 'reason': 'Invalid coordinates', 'source': 'SIMBAD'})
                         continue
                     
                     # Get magnitudes
-                    mag, mag_v, mag_b = None, None, None
+                    mag, mag_v, mag_b, mag_g = None, None, None, None
                     if 'V' in result.colnames and not np.ma.is_masked(row['V']):
                         mag_v = float(row['V'])
                         mag = mag_v
@@ -284,8 +304,19 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
                         mag_b = float(row['B'])
                         if mag is None:
                             mag = mag_b
+                    # Check for Gaia G magnitude
+                    if 'FLUX_G' in result.colnames and not np.ma.is_masked(row['FLUX_G']):
+                        mag_g = float(row['FLUX_G'])
+                        if mag is None:
+                            mag = mag_g
                     
                     if mag is not None and mag > mag_limit:
+                        discarded_objects.append({'name': name, 'reason': f'Fainter than mag limit ({mag:.2f} > {mag_limit})', 'mag': mag, 'source': 'SIMBAD'})
+                        continue
+                    
+                    # If magnitude is unknown, skip unless it's a known Deep Sky catalog object
+                    if mag is None and not (name.startswith('M ') or name.startswith('NGC') or name.startswith('IC')):
+                        discarded_objects.append({'name': name, 'reason': 'No magnitude data and not a major DSO', 'source': 'SIMBAD'})
                         continue
                     
                     # Get object type
@@ -326,7 +357,7 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
                         'name': name, 'ra': obj_ra, 'dec': obj_dec, 'mag': mag, 'catalog': catalog,
                         'object_type': otype, 'object_type_description': otype_description,
                         'spectral_type': spectral_type, 'distance_lightyears': distance_ly,
-                        'magnitude_v': mag_v, 'magnitude_b': mag_b, 'alternative_names': alt_names
+                        'magnitude_v': mag_v, 'magnitude_b': mag_b, 'magnitude_g': mag_g, 'alternative_names': alt_names
                     }
                     obj_data = {k: v for k, v in obj_data.items() if v is not None and v != '' and v != []}
                     objects.append(obj_data)
@@ -371,6 +402,7 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
                     name = f"HIP {hip}"
                     
                     if name in seen_names or hip in seen_hip_ids:
+                        discarded_objects.append({'name': name, 'reason': 'Duplicate (already in SIMBAD)', 'source': 'Hipparcos'})
                         continue
                     
                     obj_ra = float(row['_RAJ2000'])
@@ -378,6 +410,7 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
                     mag = float(row['Vmag']) if not np.ma.is_masked(row['Vmag']) else None
                     
                     if mag is not None and mag > mag_limit:
+                        discarded_objects.append({'name': name, 'reason': f'Fainter than mag limit ({mag:.2f} > {mag_limit})', 'mag': mag, 'source': 'Hipparcos'})
                         continue
                     
                     seen_names.add(name)
@@ -402,7 +435,11 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
             for row in table:
                 try:
                     name = str(row['Name']).strip()
-                    if not name or name in seen_names or name in seen_ngc_names:
+                    if not name:
+                        continue
+                        
+                    if name in seen_names or name in seen_ngc_names:
+                        discarded_objects.append({'name': name, 'reason': 'Duplicate', 'source': 'OpenNGC'})
                         continue
                     
                     if '_RAJ2000' not in table.colnames:
@@ -418,6 +455,7 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
                             break
                     
                     if mag is not None and mag > mag_limit:
+                        discarded_objects.append({'name': name, 'reason': f'Fainter than mag limit ({mag:.2f} > {mag_limit})', 'mag': mag, 'source': 'OpenNGC'})
                         continue
                     
                     catalog = 'Messier' if name.startswith('M') else 'NGC/IC'
@@ -431,7 +469,113 @@ def _query_objects(ra: float, dec: float, radius: float, mag_limit: float, log) 
         log(f"  Error querying OpenNGC: {e}")
     
     log(f"Total unique objects found: {len(objects)}")
-    return objects
+    return objects, discarded_objects
+
+
+# =============================================================================
+# Limiting Magnitude Calculation
+# =============================================================================
+
+def _estimate_limiting_magnitude(image: PILImage.Image, wcs_header, log) -> float:
+    """
+    Estimate the limiting magnitude of the image by checking for the presence
+    of catalog stars from Tycho-2.
+    
+    Returns:
+        float: Estimated limiting magnitude (default 8.0 if estimation fails)
+    """
+    try:
+        # Convert to grayscale numpy array
+        img_array = np.array(image.convert('L'))
+        height, width = img_array.shape
+        
+        # Calculate background statistics (mean and std dev)
+        # using sigma clipping to ignore bright stars
+        try:
+            mean, median, std = sigma_clipped_stats(img_array, sigma=3.0)
+        except Exception:
+            # Fallback if sigma_clipped_stats fails
+            mean = np.mean(img_array)
+            median = np.median(img_array)
+            std = np.std(img_array)
+            
+        threshold = median + 3 * std
+        log(f"Background estimation: median={median:.1f}, std={std:.1f}, threshold={threshold:.1f}")
+        
+        # Get center coordinates
+        if 'CRVAL1' in wcs_header and 'CRVAL2' in wcs_header:
+            ra = float(wcs_header['CRVAL1'])
+            dec = float(wcs_header['CRVAL2'])
+        else:
+            return 8.0
+            
+        # Calculate approximate radius
+        pixel_scale_deg = 0
+        if 'CD1_1' in wcs_header:
+             pixel_scale_deg = abs(wcs_header['CD1_1'])
+        elif 'CDELT1' in wcs_header:
+             pixel_scale_deg = abs(wcs_header['CDELT1'])
+             
+        if pixel_scale_deg == 0:
+            return 8.0
+            
+        diag_pixels = np.sqrt(width**2 + height**2)
+        radius_deg = (diag_pixels * pixel_scale_deg) / 2
+        
+        # Query Tycho-2 (I/259/tyc2) for reference stars
+        # We query deeper than we expect (up to mag 12) to find the drop-off
+        v = Vizier(columns=['VTmag', '_RAJ2000', '_DEJ2000'], row_limit=2000)
+        v.column_filters = {"VTmag": "<12"} 
+        coord = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
+        result = v.query_region(coord, radius=radius_deg*u.deg, catalog="I/259/tyc2")
+        
+        if not result or len(result) == 0:
+            log("No reference stars found for calibration. Defaulting to 8.0")
+            return 8.0
+            
+        table = result[0]
+        wcs = WCS(wcs_header)
+        
+        detected_mags = []
+        
+        for row in table:
+            try:
+                # Check if VTmag exists
+                if np.ma.is_masked(row['VTmag']):
+                    continue
+                    
+                mag = float(row['VTmag'])
+                sky_coord = SkyCoord(ra=row['_RAJ2000']*u.deg, dec=row['_DEJ2000']*u.deg, frame='icrs')
+                px, py = wcs.world_to_pixel(sky_coord)
+                
+                # Check bounds (ignore edge stars)
+                margin = 5
+                if margin <= px < width - margin and margin <= py < height - margin:
+                    # Look for max pixel value in a small window (5x5) around predicted pos
+                    x_int, y_int = int(px), int(py)
+                    window = img_array[y_int-2:y_int+3, x_int-2:x_int+3]
+                    peak_val = np.max(window)
+                    
+                    if peak_val > threshold:
+                        detected_mags.append(mag)
+            except Exception:
+                continue
+                
+        if not detected_mags:
+            log("No stars detected from reference catalog. Image might be too dark or cloudy.")
+            return 6.0 
+            
+        # Sort detected magnitudes and take the 95th percentile as the limit
+        # This assumes we detect most stars up to the limit and then it drops off
+        limit = np.percentile(detected_mags, 95)
+        
+        # Apply a sanity cap (e.g. if we detected a mag 11 star, maybe limit is 11.5)
+        log(f"Detected {len(detected_mags)} stars. 95th percentile magnitude: {limit:.2f}")
+        return float(limit)
+
+    except Exception as e:
+        log(f"Error estimating magnitude limit: {e}")
+        return 8.0
 
 
 # =============================================================================
@@ -445,7 +589,6 @@ def _annotate_image(image: PILImage.Image, wcs_header, objects: List[Dict], log)
     Returns:
         Tuple of (annotated PIL.Image, list of objects that were drawn)
     """
-    log("Annotating image...")
     img = image.convert('RGB').copy()
     draw = ImageDraw.Draw(img)
     wcs = WCS(wcs_header)
@@ -518,33 +661,37 @@ def _annotate_image(image: PILImage.Image, wcs_header, objects: List[Dict], log)
 # =============================================================================
 
 def analyze_image(
-    image: PILImage.Image,
     radius: Optional[float] = None,
-    mag_limit: float = 8.0,
+    mag_limit: Optional[float] = None,
     verbose: bool = False
 ) -> Dict[str, Any]:
     """
-    Analyze an astronomical image using plate solving and catalog queries.
+    Capture an image from webcam and analyze it using plate solving and catalog queries.
     
     This is the main API function for use as a tool in Google ADK agents.
-    It receives a PIL Image, performs plate solving to determine sky coordinates,
-    queries astronomical catalogs for celestial objects, and returns the
-    annotated image along with metadata.
+    It captures an image from a webcam (physical or virtual like OBS), performs 
+    plate solving to determine sky coordinates, queries astronomical catalogs 
+    for celestial objects, and returns the annotated image along with metadata.
+    
+    The webcam can be:
+    - A physical camera connected to a telescope
+    - A virtual camera (e.g., OBS Virtual Camera streaming from Stellarium)
     
     Args:
-        image: PIL.Image object containing the telescope image to analyze.
         radius: Search radius in degrees for catalog queries. 
                 If None, auto-calculated from the image's field of view.
                 Default: None (auto-calculate)
         mag_limit: Limiting magnitude for object search. Objects fainter than
-                   this magnitude are excluded. Lower values = fewer but brighter
-                   objects. Default: 8.0
+                this magnitude are excluded. 
+                If None, auto-calculated from image statistics.
+                Default: None (auto-calculate)
         verbose: Whether to print progress messages. Default: False
     
     Returns:
         A dictionary containing:
         - success: bool - Whether the analysis succeeded
         - error: str - Error message if success is False
+        - captured_image: PIL.Image - The raw captured image from webcam
         - annotated_image: PIL.Image - The image with objects marked and labeled
         - plate_solving: dict - Center coordinates, FOV, and pixel scale
         - objects: dict - Count and list of identified celestial objects
@@ -552,15 +699,17 @@ def analyze_image(
     Configuration (via environment variables):
         ASTROMETRY_API_KEY: API key for Astrometry.net (required)
         ASTROMETRY_TIMEOUT: Timeout in seconds for plate solving (default: 120)
-        ASTROMETRY_USE_CACHE: Cache plate solving results (default: true)
-        ASTROMETRY_CACHE_DIR: Directory for cache files (default: system temp)
+        
+        WEBCAM_INDEX: Camera device index (default: 0)
+        WEBCAM_WIDTH: Capture width in pixels (default: camera native)
+        WEBCAM_HEIGHT: Capture height in pixels (default: camera native)
+        WEBCAM_WARMUP_FRAMES: Frames to skip for warmup (default: 5)
     
     Example:
-        >>> from annotator import analyze_image
-        >>> from PIL import Image
+        >>> from analyze_image_tool import analyze_image
         >>> 
-        >>> img = Image.open("telescope_capture.png")
-        >>> result = analyze_image(img, mag_limit=10.0)
+        >>> # Capture from webcam (configured via WEBCAM_INDEX env var) and analyze
+        >>> result = analyze_image(mag_limit=10.0)
         >>> 
         >>> if result["success"]:
         ...     annotated = result["annotated_image"]
@@ -583,13 +732,26 @@ def analyze_image(
             "error": "ASTROMETRY_API_KEY environment variable is required."
         }
     
-    # Step 1: Plate solve
+    # Step 1: Capture from webcam
+    log("> Step 1: Capturing image from webcam...")
+    image = _capture_from_webcam(config, log)
+    
+    if image is None:
+        return {
+            "success": False,
+            "error": f"Failed to capture image from webcam at index {config['webcam_index']}. "
+                     f"Use _list_available_cameras() to see available devices."
+        }
+    
+    # Keep a copy of the original captured image
+    captured_image = image.copy()
+    
+    # Step 2: Plate solve
+    log("\n > Step 2: Plate solving...")
     wcs_header = _plate_solve(
         image, 
         config["api_key"], 
         config["timeout"], 
-        config["use_cache"],
-        config["cache_dir"],
         log
     )
     
@@ -632,15 +794,22 @@ def analyze_image(
         pixel_scale_arcsec = abs(wcs_header['CD1_1']) * 3600
     elif 'CDELT1' in wcs_header:
         pixel_scale_arcsec = abs(wcs_header['CDELT1']) * 3600
+
+    # Auto-calculate mag_limit if needed
+    log("Step 3: Estimating limiting magnitude from image statistics...")
+    if mag_limit is None:
+        mag_limit = _estimate_limiting_magnitude(image, wcs_header, log)
+    else:
+        log(f"Using user-specified limiting magnitude: {mag_limit}")
     
-    log(f"Searching for objects (radius={radius:.3f}°, mag_limit={mag_limit})")
+    # Step 3: Query catalogs
+    log("\n> Step 4: Querying astronomical catalogs...")
+    objects, discarded_objects = _query_objects(ra, dec, radius, mag_limit, log)
     
-    # Step 2: Query catalogs
-    objects = _query_objects(ra, dec, radius, mag_limit, log)
-    
-    # Step 3: Annotate image
+    # Step 4: Annotate image
+    log("\n> Step 5: Annotating image...")
     annotated_image, annotated_objects = _annotate_image(image, wcs_header, objects, log)
-    
+
     # Build simplified objects list for output
     objects_for_output = []
     for obj in annotated_objects:
@@ -674,10 +843,49 @@ def analyze_image(
             "diagonal_arcmin": round(fov_diagonal * 60, 2)
         }
     
-    log(f"Analysis complete! Found {len(objects_for_output)} objects in the field of view.")
+    # Save results to a timestamped folder
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        captures_dir = os.path.join(os.path.dirname(__file__), "..", "..", "tmp", "captures", timestamp)
+        os.makedirs(captures_dir, exist_ok=True)
+        
+        # Save captured image
+        captured_path = os.path.join(captures_dir, "captured.png")
+        captured_image.save(captured_path)
+        
+        # Save annotated image
+        annotated_path = os.path.join(captures_dir, "annotated.png")
+        annotated_image.save(annotated_path)
+        
+        # Save JSON output (only plate_solving and objects)
+        output_json = {
+            "plate_solving": {
+                "center": {
+                    "ra_deg": round(ra, 6),
+                    "dec_deg": round(dec, 6),
+                    "ra_hms": _ra_to_hms(ra),
+                    "dec_dms": _dec_to_dms(dec)
+                },
+                "pixel_scale_arcsec": round(pixel_scale_arcsec, 4) if pixel_scale_arcsec else None,
+                "field_of_view": fov_data
+            },
+            "objects": {
+                "count": len(objects_for_output),
+                "items": objects_for_output,
+                "discarded": discarded_objects
+            }
+        }
+        
+        json_path = os.path.join(captures_dir, "analysis.json")
+        with open(json_path, "w") as f:
+            json.dump(output_json, f, indent=2)
+            
+    except Exception as e:
+        log(f"Failed to save capture results: {e}")
     
     return {
         "success": True,
+        "captured_image": captured_image,
         "annotated_image": annotated_image,
         "plate_solving": {
             "center": {
@@ -691,6 +899,7 @@ def analyze_image(
         },
         "objects": {
             "count": len(objects_for_output),
-            "items": objects_for_output
+            "items": objects_for_output,
+            "discarded": discarded_objects
         }
     }
