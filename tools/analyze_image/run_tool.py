@@ -5,12 +5,12 @@ Simple script to run the annotator by capturing from webcam and saving results.
 The camera device is configured via the WEBCAM_INDEX environment variable or --camera-index argument.
 
 Usage:
-    python run_tool.py [--mag-limit 12.0] [--radius 1.5] [--camera-index 0]
+    python run_tool.py [--simbad-radius 30.0] [--camera-index 0]
     python run_tool.py --list-cameras
     python run_tool.py --capture --camera-index 1 --output captured.png
     
     # Set camera via environment variable:
-    WEBCAM_INDEX=1 python run_tool.py --mag-limit 12.0
+    WEBCAM_INDEX=1 python run_tool.py --simbad-radius 30.0
 """
 
 import os
@@ -105,8 +105,10 @@ def capture_single_image(camera_index: int, warmup_frames: int = 5) -> Image.Ima
 
 def main():
     parser = argparse.ArgumentParser(description="Run annotator by capturing from webcam")
-    parser.add_argument("--mag-limit", type=float, default=None, help="Magnitude limit (default: auto)")
-    parser.add_argument("--radius", type=float, default=None, help="Search radius in degrees (default: auto)")
+    parser.add_argument("--simbad-radius", type=float, default=30.0, 
+                        help="SIMBAD search radius in arcseconds (default: 30)")
+    parser.add_argument("--max-detections", type=int, default=None,
+                        help="Maximum number of objects to detect (for debugging)")
     parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
     parser.add_argument("--camera-index", "-c", type=int, default=None, 
                         help="Camera index to use (overrides WEBCAM_INDEX env var)")
@@ -133,7 +135,7 @@ def main():
             print(f"  Index {cam['index']}: {cam['width']}x{cam['height']} ({cam['backend']})")
         print("\nTo use a specific camera:")
         print("  python run_tool.py --camera-index 1 --capture --output test.png")
-        print("  python run_tool.py -c 1 --mag-limit 12.0")
+        print("  python run_tool.py -c 1 --simbad-radius 30.0")
         return 0
 
     # Capture-only mode
@@ -151,19 +153,17 @@ def main():
         return 0
 
     # Full analysis mode
-    print("=== Astronomical Image Analyzer (Webcam Capture) ===\n")
+    print("=== Astronomical Image Analyzer (Detection-First) ===\n")
     camera_index = args.camera_index if args.camera_index is not None else os.environ.get("WEBCAM_INDEX", "0")
     print(f"Camera index: {camera_index}")
-    print(f"Magnitude limit: {args.mag_limit}")
-    if args.radius:
-        print(f"Search radius: {args.radius}°")
-    else:
-        print("Search radius: auto-calculate from FOV")
+    print(f"SIMBAD radius: {args.simbad_radius}\"")
+    if args.max_detections:
+        print(f"Max detections: {args.max_detections}")
     print()
 
     result = analyze_image(
-        radius=args.radius,
-        mag_limit=args.mag_limit,
+        simbad_radius_arcsec=args.simbad_radius,
+        max_detections=args.max_detections,
         verbose=True
     )
 
@@ -177,11 +177,11 @@ def main():
     if result['plate_solving'].get('field_of_view'):
         fov = result['plate_solving']['field_of_view']
         print(f"FOV: {fov['width_arcmin']:.1f}' x {fov['height_arcmin']:.1f}'")
-    print(f"Objects found: {result['objects']['count']}")
+    print(f"Objects identified: {result['objects']['identified_count']}")
+    print(f"Objects unidentified: {result['objects']['unidentified_count']}")
 
     return 0
 
 
 if __name__ == "__main__":
     exit(main())
-
