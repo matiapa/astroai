@@ -18,7 +18,7 @@ import json
 import argparse
 import cv2
 from PIL import Image
-from tools.analyze_image.analyze_image_tool import analyze_image
+from src.tools.capture_sky.tool import SkyCaptureTool
 
 
 def list_available_cameras(max_check: int = 10) -> list:
@@ -68,8 +68,7 @@ def capture_single_image(camera_index: int, warmup_frames: int = 5) -> Image.Ima
     cap = cv2.VideoCapture(camera_index)
     
     if not cap.isOpened():
-        print(f"Error: Could not open camera at index {camera_index}")
-        return None
+        raise Exception(f"Error: Could not open camera at index {camera_index}")
     
     try:
         # Get camera properties
@@ -88,8 +87,7 @@ def capture_single_image(camera_index: int, warmup_frames: int = 5) -> Image.Ima
         ret, frame = cap.read()
         
         if not ret or frame is None:
-            print("Error: Failed to capture frame")
-            return None
+            raise Exception("Failed to capture frame")
         
         # Convert BGR (OpenCV) to RGB (PIL)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -105,10 +103,6 @@ def capture_single_image(camera_index: int, warmup_frames: int = 5) -> Image.Ima
 
 def main():
     parser = argparse.ArgumentParser(description="Run annotator by capturing from webcam")
-    parser.add_argument("--simbad-radius", type=float, default=30.0, 
-                        help="SIMBAD search radius in arcseconds (default: 30)")
-    parser.add_argument("--max-detections", type=int, default=None,
-                        help="Maximum number of objects to detect (for debugging)")
     parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
     parser.add_argument("--camera-index", "-c", type=int, default=None, 
                         help="Camera index to use (overrides WEBCAM_INDEX env var)")
@@ -124,6 +118,7 @@ def main():
         print(f"Using camera index: {args.camera_index}")
 
     # List cameras mode
+   
     if args.list_cameras:
         print("Scanning for available cameras...")
         cameras = list_available_cameras()
@@ -139,6 +134,7 @@ def main():
         return 0
 
     # Capture-only mode
+    
     if args.capture:
         camera_index = args.camera_index if args.camera_index is not None else int(os.environ.get("WEBCAM_INDEX", "0"))
         print(f"=== Quick Capture Mode ===\n")
@@ -153,33 +149,13 @@ def main():
         return 0
 
     # Full analysis mode
+    
     print("=== Astronomical Image Analyzer (Detection-First) ===\n")
-    camera_index = args.camera_index if args.camera_index is not None else os.environ.get("WEBCAM_INDEX", "0")
-    print(f"Camera index: {camera_index}")
-    print(f"SIMBAD radius: {args.simbad_radius}\"")
-    if args.max_detections:
-        print(f"Max detections: {args.max_detections}")
-    print()
+        
+    SkyCaptureTool().capture_sky( )
 
-    result = analyze_image(
-        simbad_radius_arcsec=args.simbad_radius,
-        max_detections=args.max_detections,
-        verbose=True
-    )
-
-    if not result["success"]:
-        print(f"\n❌ Error: {result['error']}")
-        return 1
-
-    # Print summary
-    print(f"\n=== Analysis Summary ===")
-    print(f"Center: {result['plate_solving']['center']['ra_hms']}, {result['plate_solving']['center']['dec_dms']}")
-    if result['plate_solving'].get('field_of_view'):
-        fov = result['plate_solving']['field_of_view']
-        print(f"FOV: {fov['width_arcmin']:.1f}' x {fov['height_arcmin']:.1f}'")
-    print(f"Objects identified: {result['objects']['identified_count']}")
-    print(f"Objects unidentified: {result['objects']['unidentified_count']}")
-
+    print("\n✅ Analysis completed")
+    
     return 0
 
 

@@ -5,11 +5,15 @@ Provides functions to query SIMBAD for objects at specific celestial coordinates
 used to identify detected objects after plate-solving.
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, List, cast
 from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord
+from astropy.table import Table
 import astropy.units as u
 import numpy as np
+
+from src.config import AppConfig
+from src.tools.capture_sky.types import CelestialPosition, CelestialObject
 
 
 # Object type descriptions for human-readable output
@@ -34,28 +38,23 @@ OTYPE_DESCRIPTIONS = {
 }
 
 
-def query_simbad_at_position(
-    ra: float,
-    dec: float,
-    radius_arcsec: float = 10.0
-) -> Optional[Dict[str, Any]]:
+def _query_simbad_at_position(ra: float, dec: float, radius_arcsec: float, config: AppConfig) -> Optional[CelestialObject]:
     """
     Query SIMBAD for the closest object at a specific position.
     
     Args:
         ra: Right Ascension in degrees
         dec: Declination in degrees
-        radius_arcsec: Search radius in arcseconds (default 10")
+        radius_arcsec: Search radius in arcseconds
+        config: Application configuration
     
     Returns:
-        Dictionary with object information if found, None otherwise.
-        Contains: name, ra, dec, object_type, magnitude, distance info, etc.
+        CelestialObject if found, None otherwise.
     """
     try:
         coord = SkyCoord(ra=ra * u.deg, dec=dec * u.deg, frame='icrs')
         
         # Configure SIMBAD query with selected fields
-        # Balance between data richness and query speed
         custom_simbad = Simbad()
         custom_simbad.add_votable_fields(
             'otype',       # Object type code (e.g., '*', 'G')
@@ -63,15 +62,21 @@ def query_simbad_at_position(
             'B',           # Blue magnitude (for B-V color index)
             'sp_type',     # Spectral type (e.g., 'G2V')
             'morph_type',  # Morphological type (for galaxies)
-            'plx_value'    # Parallax (for distance calculation)
+            'plx_value',   # Parallax (for distance calculation)
+            'dim_majaxis'  # Major axis angular size (arcminutes)
         )
         custom_simbad.ROW_LIMIT = 5  # We only need the closest matches
         
         # Query with specified radius
-        result = custom_simbad.query_region(
+        radius_arcsec = max(
+            radius_arcsec,
+            config.simbad_search_radius_arcsec
+        )
+
+        result = cast(Optional[Table], custom_simbad.query_region(
             coord, 
             radius=radius_arcsec * u.arcsec
-        )
+        ))
         
         if result is None or len(result) == 0:
             return None
@@ -87,12 +92,12 @@ def query_simbad_at_position(
                     ra_val, dec_val = row['ra'], row['dec']
                     if not np.ma.is_masked(ra_val) and not np.ma.is_masked(dec_val):
                         try:
-                            obj_ra, obj_dec = float(ra_val), float(dec_val)
+                            obj_ra, obj_dec = float(ra_val), float(dec_val) # type: ignore
                         except (ValueError, TypeError):
                             # Try parsing as sexagesimal
                             try:
                                 c = SkyCoord(str(ra_val), str(dec_val), unit=(u.hourangle, u.deg))
-                                obj_ra, obj_dec = c.ra.deg, c.dec.deg
+                                obj_ra, obj_dec = c.ra.deg, c.dec.deg # type: ignore
                             except:
                                 continue
                         
@@ -100,7 +105,7 @@ def query_simbad_at_position(
                         obj_coord = SkyCoord(ra=obj_ra * u.deg, dec=obj_dec * u.deg, frame='icrs')
                         sep = coord.separation(obj_coord).arcsec
                         
-                        if sep < min_distance:
+                        if sep < min_distance: # type: ignore
                             min_distance = sep
                             closest_row = row
             except Exception:
@@ -110,16 +115,16 @@ def query_simbad_at_position(
             return None
         
         # Parse the closest object
-        return _parse_simbad_row(closest_row, result.colnames, min_distance)
+        return _parse_simbad_row(closest_row, result.colnames, ra, dec, radius_arcsec)
         
     except Exception as e:
         # Query failed - return None silently
         return None
 
 
-def _parse_simbad_row(row, colnames: List[str], separation_arcsec: float) -> Dict[str, Any]:
+def _parse_simbad_row(row, colnames: List[str], query_ra: float, query_dec: float, query_radius_arcsec: float) -> CelestialObject:
     """
-    Parse a SIMBAD result row into a structured dictionary.
+    Parse a SIMBAD result row into a CelestialObject.
     """
     # Get main identifier
     name = str(row['main_id']).strip()
@@ -140,7 +145,7 @@ def _parse_simbad_row(row, colnames: List[str], separation_arcsec: float) -> Dic
             except (ValueError, TypeError):
                 try:
                     c = SkyCoord(str(ra_val), str(dec_val), unit=(u.hourangle, u.deg))
-                    obj_ra, obj_dec = c.ra.deg, c.dec.deg
+                    obj_ra, obj_dec = c.ra.deg, c.dec.deg # type: ignore
                 except:
                     pass
     
@@ -148,7 +153,6 @@ def _parse_simbad_row(row, colnames: List[str], separation_arcsec: float) -> Dic
     mag = None
     mag_v = None
     mag_b = None
-    mag_g = None
     
     if 'V' in colnames and not np.ma.is_masked(row['V']):
         mag_v = float(row['V'])
@@ -157,10 +161,6 @@ def _parse_simbad_row(row, colnames: List[str], separation_arcsec: float) -> Dic
         mag_b = float(row['B'])
         if mag is None:
             mag = mag_b
-    if 'FLUX_G' in colnames and not np.ma.is_masked(row['FLUX_G']):
-        mag_g = float(row['FLUX_G'])
-        if mag is None:
-            mag = mag_g
     
     # Get object type
     otype = ''
@@ -198,6 +198,16 @@ def _parse_simbad_row(row, colnames: List[str], separation_arcsec: float) -> Dic
         alt_names = [n.strip() for n in str(row['ids']).split('|') 
                      if n.strip() and n.strip() != name][:10]
     
+    # Get object angular size (dim_majaxis is in arcminutes, convert to arcseconds)
+    object_radius_arcsec = None
+    if 'dim_majaxis' in colnames and not np.ma.is_masked(row['dim_majaxis']):
+        try:
+            # dim_majaxis gives diameter in arcminutes, so radius = (diameter / 2) * 60 arcsec
+            diameter_arcmin = float(row['dim_majaxis'])
+            object_radius_arcsec = (diameter_arcmin / 2.0) * 60.0
+        except (ValueError, TypeError):
+            pass
+    
     # Determine catalog category
     if name.startswith('M') and name[1:].strip().isdigit():
         catalog = 'Messier'
@@ -208,57 +218,41 @@ def _parse_simbad_row(row, colnames: List[str], separation_arcsec: float) -> Dic
     else:
         catalog = 'Deep Sky'
     
-    # Build result dictionary
-    obj_data = {
-        'name': name,
-        'ra': obj_ra,
-        'dec': obj_dec,
-        'mag': mag,
-        'catalog': catalog,
-        'object_type': otype,
-        'object_type_description': otype_description,
-        'spectral_type': spectral_type,
-        'morphological_type': morph_type,
-        'distance_lightyears': distance_ly,
-        'magnitude_v': mag_v,
-        'magnitude_b': mag_b,
-        'bv_color_index': bv_index,
-        'alternative_names': alt_names,
-        'match_separation_arcsec': round(separation_arcsec, 2)
-    }
-    
-    # Remove None/empty values (handle numpy arrays specially)
-    def is_empty(v):
-        if v is None:
-            return True
-        if isinstance(v, str) and v == '':
-            return True
-        if isinstance(v, list) and len(v) == 0:
-            return True
-        return False
-    
-    obj_data = {k: v for k, v in obj_data.items() if not is_empty(v)}
-    
-    return obj_data
+    return CelestialObject(
+        name=name,
+        catalog=catalog,
+        position=CelestialPosition(
+            ra=obj_ra if obj_ra is not None else query_ra, # type: ignore
+            dec=obj_dec if obj_dec is not None else query_dec, # type: ignore
+            radius_arcsec=object_radius_arcsec if object_radius_arcsec is not None else query_radius_arcsec
+        ),
+        alternative_names=alt_names if alt_names else None,
+        object_type_description=otype_description if otype_description else None,
+        magnitude_visual=mag_v,
+        bv_color_index=bv_index,
+        spectral_type=spectral_type,
+        morphological_type=morph_type,
+        distance_lightyears=distance_ly,
+    )
 
 
 def query_simbad_batch(
-    positions: List[tuple],
-    radius_arcsec: float = 10.0,
+    config: AppConfig,
+    positions: List[CelestialPosition],
     max_workers: int = 10,
-    show_progress: bool = True
-) -> List[Optional[Dict[str, Any]]]:
+    show_progress: bool = True,
+) -> List[Optional[CelestialObject]]:
     """
     Query SIMBAD for multiple positions in parallel.
     
     Args:
-        positions: List of (ra, dec) tuples in degrees
-        radius_arcsec: Search radius for each position
+        positions: List of CelestialPosition with ra, dec, and radius_arcsec
         max_workers: Maximum number of parallel queries
         show_progress: Whether to show tqdm progress bar
+        config: Application configuration
     
     Returns:
-        List of results, one per position (None if no match)
+        List of CelestialObject, one per position (None if no match)
     """
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from tqdm import tqdm
@@ -267,11 +261,11 @@ def query_simbad_batch(
         return []
     
     # Create a mapping from index to position for ordered results
-    results = [None] * len(positions)
+    results: List[Optional[CelestialObject]] = [None] * len(positions)
     
     def query_position(args):
-        idx, (ra, dec) = args
-        result = query_simbad_at_position(ra, dec, radius_arcsec)
+        idx, pos = args
+        result = _query_simbad_at_position(pos.ra, pos.dec, pos.radius_arcsec, config)
         return idx, result
     
     # Run queries in parallel
@@ -299,4 +293,3 @@ def query_simbad_batch(
                 pass  # Keep None for failed queries
     
     return results
-

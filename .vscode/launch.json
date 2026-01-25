@@ -2,24 +2,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Analyze Image",
+            "name": "Run capture sky",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tools/analyze_image/run_tool.py",
+            "program": "${workspaceFolder}/scripts/run_capture_sky.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             },
-            "args": [
-                "--mag-limit",
-                "8.0",
-                "--input",
-                "files/image.png"
-            ]
+            "args": []
         },
         {
-            "name": "ADK Web Server",
+            "name": "Run ADK Web Server",
             "type": "debugpy",
             "request": "launch",
             "module": "google.adk.cli",

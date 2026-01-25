@@ -9,16 +9,17 @@ significantly against the local sky background. It handles various object types:
 - Dense regions (star clusters)
 """
 
-from typing import List, Tuple, Optional
+from typing import List
 import numpy as np
 from PIL import Image as PILImage
 from scipy import ndimage
 from astropy.stats import sigma_clipped_stats
 
-from .detector_interface import CelestialObjectDetector, DetectedObject
+from src.tools.capture_sky.types import DetectedObject, ImagePosition
+from src.tools.capture_sky.object_detector.object_detector_interface import CelestialObjectDetector
 
 
-class ContrastDetector(CelestialObjectDetector):
+class ContrastObjectDetector(CelestialObjectDetector):
     """
     Detects celestial objects using adaptive contrast thresholding.
     
@@ -109,7 +110,7 @@ class ContrastDetector(CelestialObjectDetector):
         binary_mask = img_smoothed > threshold
         
         # Label connected components
-        labeled_array, num_features = ndimage.label(binary_mask)
+        labeled_array, num_features = ndimage.label(binary_mask)  # type: ignore[misc]
         
         if num_features == 0:
             return []
@@ -151,12 +152,10 @@ class ContrastDetector(CelestialObjectDetector):
             
             # Determine if point source or extended
             # Point sources have small area relative to their brightness
-            is_point_source = area < 50 and radius < 5
+            is_point_source = bool(area < 50 and radius < 5)
             
             detected_objects.append(DetectedObject(
-                x=float(x_centroid),
-                y=float(y_centroid),
-                radius_px=float(radius),
+                position=ImagePosition(pixel_x=float(x_centroid), pixel_y=float(y_centroid), radius_px=float(radius)),
                 brightness=float(brightness),
                 area_px=float(area),
                 is_point_source=is_point_source
@@ -196,10 +195,13 @@ class ContrastDetector(CelestialObjectDetector):
                     continue
                 
                 # Calculate distance between centroids
-                distance = np.sqrt((obj1.x - obj2.x)**2 + (obj1.y - obj2.y)**2)
+                distance = np.sqrt(
+                    (obj1.position.pixel_x - obj2.position.pixel_x)**2 + 
+                    (obj1.position.pixel_y - obj2.position.pixel_y)**2
+                )
                 
                 # Also consider if they overlap based on radii
-                combined_radius = obj1.radius_px + obj2.radius_px
+                combined_radius = obj1.position.radius_px + obj2.position.radius_px
                 
                 if distance < self.merge_distance_px or distance < combined_radius:
                     to_merge.append(obj2)
@@ -212,21 +214,19 @@ class ContrastDetector(CelestialObjectDetector):
                 # Weighted average by brightness
                 total_brightness = sum(o.brightness for o in to_merge)
                 if total_brightness > 0:
-                    x_merged = sum(o.x * o.brightness for o in to_merge) / total_brightness
-                    y_merged = sum(o.y * o.brightness for o in to_merge) / total_brightness
+                    x_merged = sum(o.position.pixel_x * o.brightness for o in to_merge) / total_brightness
+                    y_merged = sum(o.position.pixel_y * o.brightness for o in to_merge) / total_brightness
                 else:
-                    x_merged = np.mean([o.x for o in to_merge])
-                    y_merged = np.mean([o.y for o in to_merge])
+                    x_merged = np.mean([o.position.pixel_x for o in to_merge])
+                    y_merged = np.mean([o.position.pixel_y for o in to_merge])
                 
                 # Combined properties
                 total_area = sum(o.area_px or 0 for o in to_merge)
                 max_brightness = max(o.brightness for o in to_merge)
-                combined_radius = np.sqrt(total_area / np.pi) if total_area > 0 else max(o.radius_px for o in to_merge)
+                combined_radius = np.sqrt(total_area / np.pi) if total_area > 0 else max(o.position.radius_px for o in to_merge)
                 
                 merged.append(DetectedObject(
-                    x=float(x_merged),
-                    y=float(y_merged),
-                    radius_px=float(combined_radius),
+                    position=ImagePosition(pixel_x=float(x_merged), pixel_y=float(y_merged), radius_px=float(combined_radius)),
                     brightness=float(max_brightness),
                     area_px=float(total_area),
                     is_point_source=False  # Merged objects are typically extended

@@ -6,30 +6,10 @@ allowing different detection algorithms to be swapped without changing the rest 
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 from PIL import Image as PILImage
 
-
-@dataclass
-class DetectedObject:
-    """
-    Represents a celestial object detected in an image.
-    
-    Attributes:
-        x: X-coordinate of the object centroid in pixels
-        y: Y-coordinate of the object centroid in pixels
-        radius_px: Approximate size/radius of the object in pixels
-        brightness: Relative brightness score (higher = brighter)
-        area_px: Area of the detected region in pixels (for diffuse objects)
-        is_point_source: Whether this appears to be a point source (star) vs extended object
-    """
-    x: float
-    y: float
-    radius_px: float
-    brightness: float
-    area_px: Optional[float] = None
-    is_point_source: bool = True
+from src.tools.capture_sky.types import DetectedObject
 
 
 class CelestialObjectDetector(ABC):
