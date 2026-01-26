@@ -14,7 +14,8 @@ class AppConfig:
     max_query_objects: int
     logs_dir: str
     verbose: bool
-    simbad_search_radius_arcsec: int
+    simbad_search_radius_arcsec:int
+    astrometry_api_url: str
     
 def get_config_from_env() -> AppConfig:
     dotenv.load_dotenv()
@@ -34,4 +35,5 @@ def get_config_from_env() -> AppConfig:
         logs_dir=os.environ.get("LOGS_DIR", "logs"),
         verbose=os.environ.get("VERBOSE", "True") == "True",
         simbad_search_radius_arcsec=int(os.environ.get("SIMBAD_SEARCH_RADIUS", "10")),
+        astrometry_api_url=os.environ.get("ASTROMETRY_API_URL", "http://ec2-3-145-73-178.us-east-2.compute.amazonaws.com/solve"),
     )

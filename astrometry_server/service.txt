@@ -1,0 +1,22 @@
+sudo nano /etc/systemd/system/astrometry.service
+
+[Unit]
+Description=Servidor API Astrometry Plate-Solver
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/ubuntu
+ExecStart=/usr/bin/python3 /home/ubuntu/astrometry/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl daemon-reload
+sudo systemctl enable astrometry.service
+sudo systemctl start astrometry.service
+
+sudo systemctl restart astrometry.service
+sudo journalctl -u astrometry.service -f

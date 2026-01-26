@@ -11,6 +11,11 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 import astropy.units as u
 import numpy as np
+import logging
+import time
+import random
+
+logger = logging.getLogger(__name__)
 
 from src.config import AppConfig
 from src.tools.capture_sky.types import CelestialPosition, CelestialObject
@@ -38,7 +43,7 @@ OTYPE_DESCRIPTIONS = {
 }
 
 
-def _query_simbad_at_position(ra: float, dec: float, radius_arcsec: float, config: AppConfig) -> Optional[CelestialObject]:
+def _query_simbad_at_position(ra: float, dec: float, radius_arcsec: float, config: AppConfig, query_id: int) -> Optional[CelestialObject]:
     """
     Query SIMBAD for the closest object at a specific position.
     
@@ -236,6 +241,16 @@ def _parse_simbad_row(row, colnames: List[str], query_ra: float, query_dec: floa
     )
 
 
+def _worker_query_task(idx: int, pos: CelestialPosition, config: AppConfig) -> tuple[int, Optional[CelestialObject]]:
+    """
+    Worker function for parallel SIMBAD queries.
+    Must be at module level for ProcessPoolExecutor pickling.
+    """
+    query_id = idx + 1
+    
+    result = _query_simbad_at_position(pos.ra, pos.dec, pos.radius_arcsec, config, query_id)
+    return idx, result
+
 def query_simbad_batch(
     config: AppConfig,
     positions: List[CelestialPosition],
@@ -254,7 +269,7 @@ def query_simbad_batch(
     Returns:
         List of CelestialObject, one per position (None if no match)
     """
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ProcessPoolExecutor, as_completed
     from tqdm import tqdm
     
     if not positions:
@@ -263,15 +278,13 @@ def query_simbad_batch(
     # Create a mapping from index to position for ordered results
     results: List[Optional[CelestialObject]] = [None] * len(positions)
     
-    def query_position(args):
-        idx, pos = args
-        result = _query_simbad_at_position(pos.ra, pos.dec, pos.radius_arcsec, config)
-        return idx, result
+    # Cap workers to 6 to respect SIMBAD rate limits (6 queries/sec)
+    actual_workers = min(max_workers, 6)
     
-    # Run queries in parallel
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    # Run queries in parallel using ProcessPoolExecutor to bypass GIL
+    with ProcessPoolExecutor(max_workers=actual_workers) as executor:
         futures = {
-            executor.submit(query_position, (i, pos)): i 
+            executor.submit(_worker_query_task, i, pos, config): i 
             for i, pos in enumerate(positions)
         }
         
@@ -289,7 +302,8 @@ def query_simbad_batch(
             try:
                 idx, result = future.result()
                 results[idx] = result
-            except Exception:
+            except Exception as e:
+                logger.error(f"SIMBAD query failed: {e}")
                 pass  # Keep None for failed queries
     
     return results

@@ -8,24 +8,24 @@ object detection, then combines this data with its knowledge and web searches to
 fascinating narratives about what the user is seeing.
 """
 
+from google.adk.tools.google_search_tool import GoogleSearchTool
 import sys
 import io
 from pathlib import Path
 
 import google.genai.types as types
 from google.adk.tools.function_tool import FunctionTool
+from google.adk.tools.tool_context import ToolContext
 
 # Add project root to path so we can import from src
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from google.adk.agents import Agent
-from google.adk.tools.google_search_tool import google_search
-
 from src.tools.capture_sky.tool import SkyCaptureTool
+# from src.tools.search.ddg_tool import web_search
 
-
-def capture_sky() -> dict:
+async def capture_sky(tool_context: ToolContext) -> dict:
     """
     Captures an image from the telescope camera and identifies stars and point sources.
     
@@ -33,15 +33,14 @@ def capture_sky() -> dict:
     and queries catalogs to identify specific STARS and POINT SOURCES.
     
     This tool DOES NOT automatically detect nebulae, galaxies, or diffuse structures. 
-    It only provides a list of stars. You MUST analyze the returned `captured_image` visually 
-    to identify and describe large deep-sky objects or other bigger structures.
+    It only provides a list of stars. You MUST analyze the returned `annotated_image` artifact 
+    visually to identify and describe large deep-sky objects or other bigger structures.
     
     Returns:
         A dictionary containing:
         - success: Whether the capture succeeded
         - error: Error message if success is False
-        - captured_image: types.Part with raw image captured from webcam
-        - annotated_image: types.Part with annotated image (only stars are likely marked)
+        - annotated_image_artifact: Name of the artifact containing the annotated image
         - plate_solving: Sky coordinates of the image center (RA/DEC), field of view, pixel scale
         - objects: Dictionary with:
             - identified_count: Number of objects identified via SIMBAD (mostly stars)
@@ -51,21 +50,33 @@ def capture_sky() -> dict:
         # Call the capture_sky function which returns a SkyCaptureResult dataclass
         sky_result = SkyCaptureTool().capture_sky()
         
-        # Convert images to types.Part for proper multimodal handling
-        # This allows Gemini to actually "see" the images using its vision capabilities
-        for key, image in [("captured_image", sky_result["captured_image"]), ("annotated_image", sky_result["captured_image_annotated"])]:
-            if image is not None:
-                try:
-                    buffered = io.BytesIO()
-                    image.save(buffered, format="PNG")
-                    # Create a types.Part with inline binary data
-                    sky_result[key] = types.Part.from_bytes(
+        # Save the annotated image as an artifact to avoid sending raw bytes to the LLM
+        # This prevents the massive token usage that occurs when images are returned directly
+        annotated_image = sky_result.get("captured_image_annotated")
+        if annotated_image is not None:
+            try:
+                buffered = io.BytesIO()
+                annotated_image.save(buffered, format="JPEG", quality=85)
+                
+                # Save as artifact - this stores the image efficiently
+                artifact_name = "annotated_sky_capture.png"
+                await tool_context.save_artifact(
+                    filename=artifact_name,
+                    artifact=types.Part.from_bytes(
                         data=buffered.getvalue(),
                         mime_type="image/png"
                     )
-                except Exception as e:
-                    sky_result[key] = None
-                    sky_result[f"{key}_error"] = f"Failed to encode image: {str(e)}"
+                )
+                sky_result["annotated_image_artifact"] = artifact_name
+                
+            except Exception as e:
+                sky_result["annotated_image_error"] = f"Failed to save annotated image artifact: {str(e)}"
+        
+        # Remove PIL Image objects from the result to avoid serialization issues
+        if "captured_image_annotated" in sky_result:
+            del sky_result["captured_image_annotated"]
+        if "captured_image" in sky_result:
+            del sky_result["captured_image"]
         
         return sky_result
         
@@ -76,12 +87,17 @@ def capture_sky() -> dict:
         }
 
 capture_sky_tool = FunctionTool(func=capture_sky)
+# search_tool = FunctionTool(func=web_search)
+search_tool = GoogleSearchTool(bypass_multi_tools_limit=True)
 
 # Read the only prompt from the markdown file
-with open("./agents/astro_guide/prompt.md", "r") as f:
-    prompt = f.read()
+import re
 
-# Define the root agent
+with open("./agents/astro_guide/prompt.md", "r") as f:
+    prompt =  f.read()
+    prompt = re.sub(r"<!--.*?-->", "", prompt, flags=re.DOTALL)
+
+# Define the root agent<
 root_agent = Agent(
     model="gemini-3-flash-preview",
     name="astro_guide",
@@ -89,6 +105,6 @@ root_agent = Agent(
     instruction=prompt,
     tools=[
         capture_sky_tool,
-        # google_search,
+        search_tool,
     ],
 )

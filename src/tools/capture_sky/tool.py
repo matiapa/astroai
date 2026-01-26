@@ -19,7 +19,8 @@ import pickle
 import cv2
 from typing import List, Optional
 
-from astroquery.astrometry_net import AstrometryNet
+import requests
+from astropy.io.fits import Header
 from astropy.wcs import WCS
 from PIL import Image as PILImage, ImageDraw, ImageFont
 
@@ -104,14 +105,30 @@ class SkyCaptureTool:
             tmp_path = tmp.name
         
         try:
-            ast = AstrometryNet()
-            ast.api_key = self.config.astrometry_api_key
+            self.log(f"Sending image to Astrometry server...")
             
-            timeout = self.config.plate_solving_timeout
-            self.log(f"Sending image to Astrometry.net for plate solving (timeout={timeout}s)...")
-            wcs_header = ast.solve_from_image(tmp_path, solve_timeout=timeout)
+            # Use self-hosted astrometry server
+            url = self.config.astrometry_api_url
             
-            if wcs_header:
+            with open(tmp_path, 'rb') as f:
+                response = requests.post(url, files={'image': f})
+                
+            if response.status_code != 200:
+                raise RuntimeError(f"Astrometry server returned status {response.status_code}: {response.text}")
+            
+            try:
+                result = response.json()
+            except json.JSONDecodeError:
+                raise RuntimeError(f"Invalid JSON response from server: {response.text}")
+            
+            if result.get("status") == "success":
+                wcs_content = result.get("wcs")
+                if not wcs_content:
+                    raise RuntimeError("Server returned success but no WCS content")
+                
+                # Parse WCS header from string
+                wcs_header = Header.fromstring(wcs_content)
+                
                 # Save to cache
                 try:
                     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
@@ -123,7 +140,8 @@ class SkyCaptureTool:
                 
                 return wcs_header
             else:
-                raise RuntimeError("Plate solving failed - Astrometry.net could not solve the image")
+                msg = result.get("message", "Unknown error")
+                raise RuntimeError(f"Plate solving failed: {msg}")
                 
         except RuntimeError:
             raise  # Re-raise our own exceptions
@@ -160,6 +178,7 @@ class SkyCaptureTool:
         max_query_objects = self.config.max_query_objects
         if len(detected_objects) > max_query_objects:
             self.log(f"  Limiting to first {max_query_objects} detections")
+            detected_objects.sort(key=lambda obj: obj.brightness, reverse=True)
             detected_objects = detected_objects[:max_query_objects]
         
         # Step 2: Convert to celestial coordinates
