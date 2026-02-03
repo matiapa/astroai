@@ -11,13 +11,15 @@ false negatives compared to region-based catalog queries.
 """
 
 
+import base64
 from datetime import datetime
+import io
 import os
 import tempfile
 import json
 import pickle
 import cv2
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import requests
 from astropy.io.fits import Header
@@ -301,20 +303,42 @@ class SkyCaptureTool:
     # Main function
     # =============================================================================
 
-    def capture_sky(self, image_path: str) -> dict:
+    def capture_sky_from_file(self, image_path: str) -> dict:
         """
-        Capture an image from webcam and analyze it using detection-first approach.
+        Analyze a night sky image from a file path.
+        
+        Convenience method that reads the file and calls capture_sky with base64 encoding.
+        
+        Args:
+            image_path: Path to the image file
+        
+        Returns:
+            Same as capture_sky()
+        """
+        try:
+            with open(image_path, "rb") as f:
+                image_data = f.read()
+            base64_image = base64.b64encode(image_data).decode("utf-8")
+            return self.capture_sky(base64_image)
+        except Exception as e:
+            raise RuntimeError(f"Failed to read image from {image_path}: {e}")
+
+    def capture_sky(self, base64_image: str) -> dict:
+        """
+        Analyze a night sky image using detection-first approach.
         
         This tool detects objects directly in the image first, then queries
         SIMBAD only at those specific positions. This reduces false positives
         (annotations for invisible objects) and false negatives (missing visible objects).
         
+        Args:
+            base64_image: Base64-encoded image string
+        
         Returns:
-            AnalyzeImageResult with:
-            - captured_image: PIL.Image - The raw captured image from webcam
-            - annotated_image: PIL.Image - The image with objects marked
-            - plate_solving: PlateSolvingResult - Center coordinates and pixel scale
-            - objects: List[CelestialObject] - Detected and identified celestial objects
+            dict with:
+            - success: bool
+            - plate_solving: dict with center coordinates and pixel scale
+            - identified_objects: List of identified celestial objects with pixel coords
         """
 
         # Step 0: Prepare logs dir with datetime string
@@ -323,13 +347,14 @@ class SkyCaptureTool:
         logs_dir = os.path.join(self.config.logs_dir, datetime_str)
         os.makedirs(logs_dir, exist_ok=True)
  
-        # Step 1: Load image from artifact
-        self.log(f"\n> Step 1: Loading image from {image_path}...")
+        # Step 1: Decode base64 image
+        self.log(f"\n> Step 1: Decoding base64 image...")
 
         try:
-            image = PILImage.open(image_path)
+            image_data = base64.b64decode(base64_image)
+            image = PILImage.open(io.BytesIO(image_data))
         except Exception as e:
-            raise RuntimeError(f"Failed to open image at {image_path}: {e}")
+            raise RuntimeError(f"Failed to decode base64 image: {e}")
         
         captured_image = image.copy()
         captured_debug_path = os.path.join(logs_dir, "captured.png")
@@ -385,7 +410,7 @@ class SkyCaptureTool:
         self.log("\n> Step 6: Building result...")
 
         identified_objects = []
-        for celestial_object in celestial_objects:
+        for detected_obj, celestial_object in zip(detected_objects, celestial_objects):
             if celestial_object is None:
                 continue
             
@@ -394,7 +419,16 @@ class SkyCaptureTool:
                 "name": celestial_object.name,
                 "type": celestial_object.catalog,
                 "subtype": celestial_object.object_type_description,
-                "size_arcsec": round(celestial_object.position.radius_arcsec, 2),
+                "celestial_coords": {
+                    "ra_deg": round(celestial_object.position.ra, 6),
+                    "dec_deg": round(celestial_object.position.dec, 6),
+                    "radius_arcsec": round(celestial_object.position.radius_arcsec, 2),
+                },
+                "pixel_coords": {
+                    "x": round(detected_obj.position.pixel_x, 2),
+                    "y": round(detected_obj.position.pixel_y, 2),
+                    "radius_pixels": round(detected_obj.position.radius_px, 2),
+                },
             }
             
             # Add optional fields only if not None
@@ -421,6 +455,7 @@ class SkyCaptureTool:
                 "pixel_scale_arcsec": round(pixel_scale_arcsec, 4) if pixel_scale_arcsec else None,
             },
             "identified_objects": identified_objects,
+            "logs_dir": logs_dir,
         }
         
         try:
@@ -429,8 +464,6 @@ class SkyCaptureTool:
                 json.dump(result, f, indent=2)
         except Exception as e:
             raise RuntimeError(f"Failed to save JSON: {e}") from e
-
-        result["captured_image_annotated"] = annotated_image
 
         self.log("\nProcessing completed successfully.")
         

@@ -9,6 +9,7 @@ fascinating narratives about what the user is seeing.
 """
 
 from google.adk.tools.google_search_tool import GoogleSearchTool
+import os
 import sys
 import io
 from pathlib import Path
@@ -50,36 +51,34 @@ async def capture_sky(tool_context: ToolContext, image_artifact_name: str) -> di
             - identified: List of identified objects.
     """
     try:
-        # Call the capture_sky function which returns a SkyCaptureResult dataclass
-        sky_result = SkyCaptureTool().capture_sky(image_path=image_artifact_name)
+        # Call the capture_sky function using file path method
+        sky_result = SkyCaptureTool().capture_sky_from_file(image_path=image_artifact_name)
         
-        # Save the annotated image as an artifact to avoid sending raw bytes to the LLM
-        # This prevents the massive token usage that occurs when images are returned directly
-        annotated_image = sky_result.get("captured_image_annotated")
-        if annotated_image is not None:
-            try:
-                buffered = io.BytesIO()
-                annotated_image.save(buffered, format="JPEG", quality=85)
-                
-                # Save as artifact - this stores the image efficiently
-                artifact_name = "annotated_sky_capture.png"
-                await tool_context.save_artifact(
-                    filename=artifact_name,
-                    artifact=types.Part.from_bytes(
-                        data=buffered.getvalue(),
-                        mime_type="image/png"
+        # Load and save the annotated image as an artifact
+        logs_dir = sky_result.get("logs_dir")
+        if logs_dir:
+            annotated_path = os.path.join(logs_dir, "annotated.png")
+            if os.path.exists(annotated_path):
+                try:
+                    with open(annotated_path, "rb") as f:
+                        annotated_data = f.read()
+                    
+                    # Save as artifact - this stores the image efficiently
+                    artifact_name = "annotated_sky_capture.png"
+                    await tool_context.save_artifact(
+                        filename=artifact_name,
+                        artifact=types.Part.from_bytes(
+                            data=annotated_data,
+                            mime_type="image/png"
+                        )
                     )
-                )
-                sky_result["annotated_image_artifact"] = artifact_name
-                
-            except Exception as e:
-                sky_result["annotated_image_error"] = f"Failed to save annotated image artifact: {str(e)}"
+                    sky_result["annotated_image_artifact"] = artifact_name
+                except Exception as e:
+                    sky_result["annotated_image_error"] = f"Failed to save annotated image artifact: {str(e)}"
         
-        # Remove PIL Image objects from the result to avoid serialization issues
-        if "captured_image_annotated" in sky_result:
-            del sky_result["captured_image_annotated"]
-        if "captured_image" in sky_result:
-            del sky_result["captured_image"]
+        # Remove logs_dir from result (internal detail)
+        if "logs_dir" in sky_result:
+            del sky_result["logs_dir"]
         
         return sky_result
         

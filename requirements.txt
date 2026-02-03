@@ -12,3 +12,10 @@ python-dotenv>=1.0.0
 
 # Webcam capture
 opencv-python>=4.5.0
+
+# API Server
+fastapi>=0.100.0
+uvicorn>=0.22.0
+
+# Google GenAI SDK (for direct Gemini API calls)
+google-genai>=1.0.0
