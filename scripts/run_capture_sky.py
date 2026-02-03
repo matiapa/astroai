@@ -151,8 +151,23 @@ def main():
     # Full analysis mode
     
     print("=== Astronomical Image Analyzer (Detection-First) ===\n")
+
+    # Capture image first since tool no longer does it
+    camera_index = args.camera_index if args.camera_index is not None else int(os.environ.get("WEBCAM_INDEX", "0"))
+    image = capture_single_image(camera_index)
+    if image is None:
+        return 1
+    
+    # Save to temporary file to pass to tool
+    temp_capture_path = "temp_capture_for_analysis.png"
+    image.save(temp_capture_path)
+    print(f"Captured temporary image for analysis: {temp_capture_path}")
         
-    SkyCaptureTool().capture_sky( )
+    SkyCaptureTool().capture_sky(image_path=temp_capture_path)
+
+    # Clean up
+    if os.path.exists(temp_capture_path):
+        os.remove(temp_capture_path)
 
     print("\n✅ Analysis completed")
     

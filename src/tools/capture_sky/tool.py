@@ -301,7 +301,7 @@ class SkyCaptureTool:
     # Main function
     # =============================================================================
 
-    def capture_sky(self) -> dict:
+    def capture_sky(self, image_path: str) -> dict:
         """
         Capture an image from webcam and analyze it using detection-first approach.
         
@@ -323,11 +323,13 @@ class SkyCaptureTool:
         logs_dir = os.path.join(self.config.logs_dir, datetime_str)
         os.makedirs(logs_dir, exist_ok=True)
  
-        # Step 1: Capture from webcam
+        # Step 1: Load image from artifact
+        self.log(f"\n> Step 1: Loading image from {image_path}...")
 
-        self.log("\n> Step 1: Capturing image from webcam...")
-
-        image = self._capture_from_webcam()
+        try:
+            image = PILImage.open(image_path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to open image at {image_path}: {e}")
         
         captured_image = image.copy()
         captured_debug_path = os.path.join(logs_dir, "captured.png")

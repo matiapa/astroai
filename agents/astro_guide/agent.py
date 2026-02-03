@@ -25,7 +25,7 @@ from google.adk.agents import Agent
 from src.tools.capture_sky.tool import SkyCaptureTool
 # from src.tools.search.ddg_tool import web_search
 
-async def capture_sky(tool_context: ToolContext) -> dict:
+async def capture_sky(tool_context: ToolContext, image_artifact_name: str) -> dict:
     """
     Captures an image from the telescope camera and identifies stars and point sources.
     
@@ -36,6 +36,9 @@ async def capture_sky(tool_context: ToolContext) -> dict:
     It only provides a list of stars. You MUST analyze the returned `annotated_image` artifact 
     visually to identify and describe large deep-sky objects or other bigger structures.
     
+    Args:
+        image_artifact_name: The name of the image artifact file to analyze.
+
     Returns:
         A dictionary containing:
         - success: Whether the capture succeeded
@@ -48,7 +51,7 @@ async def capture_sky(tool_context: ToolContext) -> dict:
     """
     try:
         # Call the capture_sky function which returns a SkyCaptureResult dataclass
-        sky_result = SkyCaptureTool().capture_sky()
+        sky_result = SkyCaptureTool().capture_sky(image_path=image_artifact_name)
         
         # Save the annotated image as an artifact to avoid sending raw bytes to the LLM
         # This prevents the massive token usage that occurs when images are returned directly
@@ -97,9 +100,9 @@ with open("./agents/astro_guide/prompt.md", "r") as f:
     prompt =  f.read()
     prompt = re.sub(r"<!--.*?-->", "", prompt, flags=re.DOTALL)
 
-# Define the root agent<
+# Define the root agent
 root_agent = Agent(
-    model="gemini-3-flash-preview",
+    model="gemini-3-pro-preview",
     name="astro_guide",
     description="Un astrónomo experto y guía turístico del cielo que captura imágenes del telescopio y brinda narrativas fascinantes sobre los objetos celestes.",
     instruction=prompt,
