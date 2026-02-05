@@ -28,6 +28,18 @@
                 "web",
                 "agents"
             ]
+        },
+        {
+            "name": "Run FastAPI Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.api.server",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

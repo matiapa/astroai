@@ -15,19 +15,36 @@ def test_analyze(image_path, language="es", server_url="http://localhost:8000/an
         files = {"image": (os.path.basename(image_path), f, "image/png")}
         data = {"language": language}
         
-        print(f"Sending request to {server_url} (language: {language})...")
-        try:
-            response = requests.post(
-                server_url,
-                files=files,
-                data=data,
-                timeout=180
-            )
+    print(f"Sending request to {server_url} (language: {language})...")
+    try:
+        response = requests.post(
+            server_url,
+            files=files,
+            data=data,
+            stream=True,  # Enable streaming
+            timeout=180
+        )
+        
+        if response.status_code == 200:
+            print("Connected! Waiting for events...")
+            result = None
             
-            if response.status_code == 200:
-                print("Success!")
-                result = response.json()
-                
+            for line in response.iter_lines():
+                if line:
+                    decoded_line = line.decode('utf-8')
+                    if decoded_line.startswith("event:"):
+                        event_name = decoded_line.split(":", 1)[1].strip()
+                        print(f"\n[EVENT] {event_name}")
+                    elif decoded_line.startswith("data:"):
+                        data_content = decoded_line.split(":", 1)[1].strip()
+                        if event_name == "analysis_finished":
+                            print("Analysis finished! Parsing result...")
+                            result = json.loads(data_content)
+                            break
+                        else:
+                            print(f"Data: {data_content}")
+
+            if result:
                 # Print summary
                 print("\nAnalysis Summary:")
                 print(f"Success: {result['success']}")
@@ -57,13 +74,15 @@ def test_analyze(image_path, language="es", server_url="http://localhost:8000/an
                 with open("test_response.json", "w") as f:
                     json.dump(result, f, indent=2)
                 print("Full response saved to test_response.json")
-                
             else:
-                print(f"Error: Server returned status {response.status_code}")
-                print(response.text)
+                 print("Stream finished but no result found.")
                 
-        except Exception as e:
-            print(f"Error sending request: {e}")
+        else:
+            print(f"Error: Server returned status {response.status_code}")
+            print(response.text)
+            
+    except Exception as e:
+        print(f"Error sending request: {e}")
 
 if __name__ == "__main__":
     language = "es"

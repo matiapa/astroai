@@ -1,0 +1,282 @@
+openapi: 3.0.3
+info:
+  title: AstroIA API
+  description: Astronomical image analysis API with AI-powered narration
+  version: 1.0.0
+  contact:
+    name: AstroIA
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /:
+    get:
+      summary: Health Check
+      description: Returns the health status of the API
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: AstroIA API
+
+  /analyze:
+    post:
+      summary: Analyze Astronomical Image
+      description: |
+        Receives an astronomical image and performs:
+        1. Plate solving to determine sky coordinates
+        2. Object detection and identification via SIMBAD
+        3. AI-generated narration using Gemini
+        4. Text-to-speech audio generation
+      operationId: analyzeImage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Astronomical image file (PNG, JPG, etc.)
+                language:
+                  type: string
+                  default: es
+                  description: ISO 639-1 language code for narration output
+      responses:
+        "200":
+          description: |
+            Server-Sent Events stream with progressive results.
+
+            Events (in order):
+            - `analyzing_image`: Processing started (no payload)
+            - `analysis_complete`: `{plate_solving, identified_objects}`
+            - `generating_narration`: Narration started (no payload)
+            - `narration_complete`: `{title, text, object_legends}`
+            - `generating_audio`: Audio generation started (no payload)
+            - `audio_complete`: `{audio_url}` (final event)
+            - `error`: `{error}` (on failure)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Stream of events with progressive data
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+  /audio/{filename}:
+    get:
+      summary: Download Audio File
+      description: Serves generated narration audio files
+      operationId: getAudio
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Audio filename (e.g., narration_abc123.wav)
+      responses:
+        "200":
+          description: Audio file
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Audio file not found
+
+components:
+  schemas:
+    AnalyzeResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether the analysis completed successfully
+        plate_solving:
+          $ref: "#/components/schemas/PlateSolving"
+        narration:
+          $ref: "#/components/schemas/Narration"
+        identified_objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/IdentifiedObject"
+        error:
+          type: string
+          description: Error message if success is false
+
+    PlateSolving:
+      type: object
+      required:
+        - center_ra_deg
+        - center_dec_deg
+      properties:
+        center_ra_deg:
+          type: number
+          format: double
+          description: Right Ascension of image center (degrees)
+          example: 83.809927
+        center_dec_deg:
+          type: number
+          format: double
+          description: Declination of image center (degrees)
+          example: -4.852231
+        pixel_scale_arcsec:
+          type: number
+          format: double
+          description: Pixel scale (arcseconds per pixel)
+          example: 1.05
+
+    Narration:
+      type: object
+      required:
+        - title
+        - text
+        - audio_url
+      properties:
+        title:
+          type: string
+          description: AI-generated title for the sky region
+          example: A Glimpse into Orion's Heart
+        text:
+          type: string
+          description: AI-generated narration text
+        audio_url:
+          type: string
+          format: uri
+          description: URL to download the narration audio
+          example: http://localhost:8000/audio/narration_abc123.wav
+
+    IdentifiedObject:
+      type: object
+      required:
+        - name
+        - type
+        - celestial_coords
+        - pixel_coords
+      properties:
+        name:
+          type: string
+          description: Object name from SIMBAD
+          example: 45 Ori
+        type:
+          type: string
+          description: Object type (Star, Galaxy, Nebula, etc.)
+          example: Star
+        subtype:
+          type: string
+          description: Object subtype code
+          example: Y*O
+        magnitude_visual:
+          type: number
+          format: double
+          description: Visual magnitude
+          example: 5.2
+        bv_color_index:
+          type: number
+          format: double
+          description: B-V color index
+        spectral_type:
+          type: string
+          description: Spectral classification
+          example: M3.2
+        morphological_type:
+          type: string
+          description: Morphological type (for galaxies)
+        distance_lightyears:
+          type: number
+          format: double
+          description: Distance in light-years
+          example: 1455
+        alternative_names:
+          type: array
+          items:
+            type: string
+          description: Alternative object names
+        celestial_coords:
+          $ref: "#/components/schemas/CelestialCoords"
+        pixel_coords:
+          $ref: "#/components/schemas/PixelCoords"
+        legend:
+          type: string
+          description: AI-generated legend for this object
+
+    CelestialCoords:
+      type: object
+      required:
+        - ra_deg
+        - dec_deg
+        - radius_arcsec
+      properties:
+        ra_deg:
+          type: number
+          format: double
+          description: Right Ascension (degrees)
+        dec_deg:
+          type: number
+          format: double
+          description: Declination (degrees)
+        radius_arcsec:
+          type: number
+          format: double
+          description: Object radius (arcseconds)
+
+    PixelCoords:
+      type: object
+      required:
+        - x
+        - y
+        - radius_pixels
+      properties:
+        x:
+          type: number
+          format: double
+          description: X coordinate in image (pixels)
+        y:
+          type: number
+          format: double
+          description: Y coordinate in image (pixels)
+        radius_pixels:
+          type: number
+          format: double
+          description: Object radius (pixels)
+
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string

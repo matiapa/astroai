@@ -2,9 +2,11 @@
 Controller for the /analyze endpoint.
 """
 
+import asyncio
 import os
 import uuid
 import base64
+import json
 from typing import Optional
 
 from fastapi import UploadFile
@@ -30,52 +32,88 @@ def _ensure_tmp_dir() -> str:
     return TMP_DIR
 
 
-async def analyze_image(
+async def analyze_image_stream(
     image: UploadFile,
     language: str,
     base_url: str
-) -> AnalyzeResponse:
+):
     """
-    Analyze an astronomical image.
+    Analyze an astronomical image and yield progress updates via SSE.
     
     Args:
         image: Uploaded image file
         language: ISO language code for narration
         base_url: Base URL for constructing audio download URLs
     
-    Returns:
-        AnalyzeResponse with analysis results
+    Yields:
+        Dict with "event" and "data" for SSE:
+        - analyzing_image: starts analysis
+        - analysis_complete: plate_solving + identified_objects
+        - narration_complete: title + text
+        - audio_complete: audio_url (final event)
+        - error: on failure
     """
     try:
         # Read image and encode to base64 for SkyCaptureTool
         image_bytes = await image.read()
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
         
-        # Step 1: Analyze the image with SkyCaptureTool
+        # Step 1: Analyze the image
+        yield {"event": "analyzing_image", "data": "{}"}
         print("> Step 1: Analyzing image with SkyCaptureTool...")
+        
         sky_tool = SkyCaptureTool()
-        analysis_result = sky_tool.capture_sky(image_base64)
+        analysis_result = await asyncio.to_thread(sky_tool.capture_sky, image_base64)
         
         if not analysis_result.get("success"):
-            return AnalyzeResponse(
-                success=False,
-                error=analysis_result.get("error", "Image analysis failed")
-            )
+            yield {"event": "error", "data": json.dumps({"error": analysis_result.get("error", "Image analysis failed")})}
+            return
         
         plate_solving = analysis_result.get("plate_solving", {})
         identified_objects = analysis_result.get("identified_objects", [])
         
-        # Step 2: Generate narration with specified language
+        # Yield analysis results
+        yield {
+            "event": "analysis_complete",
+            "data": json.dumps({
+                "plate_solving": plate_solving,
+                "identified_objects": identified_objects
+            })
+        }
+        
+        # Step 2: Generate narration
+        yield {"event": "generating_narration", "data": "{}"}
         print(f"> Step 2: Generating narration in '{language}'...")
+        
         narration_gen = NarrationGenerator()
-        narration_result = narration_gen.generate(
-            plate_solving=plate_solving,
-            identified_objects=identified_objects,
-            language=language
+        narration_result = await asyncio.to_thread(
+            narration_gen.generate,
+            plate_solving,
+            identified_objects,
+            language
         )
         
+        # Merge legends into identified objects
+        object_legends = narration_result.get("object_legends", {})
+        for obj in identified_objects:
+            obj_name = obj.get("name", "")
+            if obj_name in object_legends:
+                obj["legend"] = object_legends[obj_name]
+        
+        # Yield narration results
+        yield {
+            "event": "narration_complete",
+            "data": json.dumps({
+                "title": narration_result.get("title", "The Night Sky"),
+                "text": narration_result.get("text", ""),
+                "object_legends": object_legends
+            })
+        }
+        
         # Step 3: Generate TTS audio
+        yield {"event": "generating_audio", "data": "{}"}
         print("> Step 3: Generating TTS audio...")
+        
         tts_service = TTSService(language=language)
         
         # Generate unique filename for audio
@@ -83,41 +121,25 @@ async def analyze_image(
         tmp_dir = _ensure_tmp_dir()
         audio_output_path = os.path.join(tmp_dir, audio_filename)
         
-        _, saved_path = tts_service.generate_audio(
-            text=narration_result.get("text", ""),
-            output_path=audio_output_path
+        _, saved_path = await asyncio.to_thread(
+            tts_service.generate_audio,
+            narration_result.get("text", ""),
+            audio_output_path
         )
         
         # Build audio URL
         audio_url = f"{base_url}/audio/{audio_filename}"
         
-        # Step 4: Merge legends into identified objects
-        print("> Step 4: Building response...")
-        object_legends = narration_result.get("object_legends", {})
-        for obj in identified_objects:
-            obj_name = obj.get("name", "")
-            if obj_name in object_legends:
-                obj["legend"] = object_legends[obj_name]
+        # Yield audio URL (final event)
+        yield {
+            "event": "audio_complete",
+            "data": json.dumps({"audio_url": audio_url})
+        }
         
-        # Build response
-        return AnalyzeResponse(
-            success=True,
-            plate_solving=PlateSolving(**plate_solving),
-            narration=Narration(
-                title=narration_result.get("title", "The Night Sky"),
-                text=narration_result.get("text", ""),
-                audio_url=audio_url
-            ),
-            identified_objects=[
-                IdentifiedObject(**obj) for obj in identified_objects
-            ]
-        )
+        print("> Analysis complete!")
         
     except Exception as e:
         print(f"Error during analysis: {e}")
         import traceback
         traceback.print_exc()
-        return AnalyzeResponse(
-            success=False,
-            error=str(e)
-        )
+        yield {"event": "error", "data": json.dumps({"error": str(e)})}

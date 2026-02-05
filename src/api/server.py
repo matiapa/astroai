@@ -16,9 +16,13 @@ import uvicorn
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.api.analyze.dto import AnalyzeResponse
-from src.api.analyze.controller import analyze_image, TMP_DIR
+from sse_starlette.sse import EventSourceResponse
 
+from src.api.analyze.dto import AnalyzeResponse
+from src.api.analyze.controller import analyze_image_stream, TMP_DIR
+
+
+from fastapi.middleware.cors import CORSMiddleware
 
 # ============================================================================
 # FastAPI Application
@@ -30,6 +34,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def root():
@@ -37,21 +49,23 @@ async def root():
     return {"status": "ok", "service": "AstroIA API"}
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
+@app.post("/analyze")
 async def analyze(
     req: Request,
     image: UploadFile = File(..., description="Astronomical image file"),
     language: str = Form(default="es", description="ISO language code for narration")
-) -> AnalyzeResponse:
+):
     """
     Analyze an astronomical image.
     
-    Receives an image file and optional language code via multipart form,
-    performs plate solving and object detection,
-    generates narration using Gemini AI, and returns audio via Gemini TTS.
+    Returns an SSE stream with progress updates and final result:
+    - event: analyzing_image
+    - event: generating_narration
+    - event: generating_audio
+    - event: analysis_finished (payload is AnalyzeResponse JSON)
     """
     base_url = str(req.base_url).rstrip("/")
-    return await analyze_image(image, language, base_url)
+    return EventSourceResponse(analyze_image_stream(image, language, base_url))
 
 
 @app.get("/audio/{filename}")
@@ -67,7 +81,8 @@ async def get_audio(filename: str):
     return FileResponse(
         path=file_path,
         media_type="audio/wav",
-        filename=filename
+        filename=filename,
+        headers={"Access-Control-Allow-Origin": "*"}
     )
 
 

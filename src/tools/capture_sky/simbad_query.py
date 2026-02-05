@@ -39,7 +39,7 @@ OTYPE_DESCRIPTIONS = {
     'WR*': 'Wolf-Rayet Star', 'Be*': 'Be Star', 'BS*': 'Blue Straggler Star', 'RG*': 'Red Giant Star',
     'WD*': 'White Dwarf', 'NS': 'Neutron Star', 'Psr': 'Pulsar', 'BH': 'Black Hole',
     'XB*': 'X-ray Binary', 'LXB': 'Low Mass X-ray Binary', 'HXB': 'High Mass X-ray Binary',
-    'Pl': 'Planet', 'Pl?': 'Planet Candidate', 'Com': 'Comet', 'As': 'Asteroid',
+    'Pl': 'Planet', 'Pl?': 'Planet Candidate', 'Com': 'Comet', 'As': 'Asteroid', 'Y*0': 'Young Stellar Object',
 }
 
 
@@ -68,7 +68,9 @@ def _query_simbad_at_position(ra: float, dec: float, radius_arcsec: float, confi
             'sp_type',     # Spectral type (e.g., 'G2V')
             'morph_type',  # Morphological type (for galaxies)
             'plx_value',   # Parallax (for distance calculation)
-            'dim_majaxis'  # Major axis angular size (arcminutes)
+            'plx_value',   # Parallax (for distance calculation)
+            'dim_majaxis', # Major axis angular size (arcminutes)
+            'ids'          # All identifiers (to find common name)
         )
         custom_simbad.ROW_LIMIT = 5  # We only need the closest matches
         
@@ -132,9 +134,22 @@ def _parse_simbad_row(row, colnames: List[str], query_ra: float, query_dec: floa
     Parse a SIMBAD result row into a CelestialObject.
     """
     # Get main identifier
-    name = str(row['main_id']).strip()
+    main_id = str(row['main_id']).strip()
+    name = main_id
+
+    # Try to find a common name (NAME identifier) from the IDs list
+    if 'ids' in colnames and not np.ma.is_masked(row['ids']):
+        # IDs are pipe-separated
+        ids_list = str(row['ids']).split('|')
+        for id_str in ids_list:
+            id_str = id_str.strip()
+            # Look for IDs starting with "NAME "
+            if id_str.startswith('NAME '):
+                # Use the name part (strip "NAME " prefix)
+                name = id_str[5:].strip()
+                break
     
-    # Clean up name formatting
+    # Clean up name formatting (only if still using main_id or if needed)
     if name.startswith('M  '):
         name = 'M' + name[3:].strip()
     elif name.startswith('M '):
