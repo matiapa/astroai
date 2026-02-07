@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
+import 'package:a2a/a2a.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:astro_guide/core/config/app_config.dart';
@@ -47,11 +48,12 @@ class _ResultsChatScreenState extends State<ResultsChatScreen> {
 
       final result = entry.analysisResult;
       final context = _buildContextString(result);
+      final client = A2AClient(AppConfig.a2aAgentUrl);
 
       setState(() {
         _analysisTitle = result.narration?.title;
         _provider = A2aProvider(
-          agentUrl: AppConfig.a2aAgentUrl,
+          client: client,
           initialContext: context,
         );
       });

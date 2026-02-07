@@ -1,22 +1,17 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
 import 'package:a2a/a2a.dart';
 import 'package:uuid/uuid.dart';
 
 /// Custom [LlmProvider] that bridges the Flutter AI Toolkit to the
-/// A2A (Agent-to-Agent) protocol using direct HTTP calls via Dio.
+/// A2A (Agent-to-Agent) protocol via [A2AClient].
 ///
-/// This provider bypasses [A2AClient]'s internal HTTP layer (which uses
-/// streaming request bodies incompatible with web browsers) and instead
-/// makes standard POST requests. A2A data models are still used for
-/// serialization and deserialization.
+/// This provider translates between the [LlmChatView] widget's expectations
+/// and the A2A protocol's streaming message API, enabling multi-turn
+/// conversations with a remote A2A agent (Atlas).
 class A2aProvider extends LlmProvider with ChangeNotifier {
-  /// The Dio HTTP client.
-  final Dio _dio;
-
-  /// The A2A agent endpoint URL.
-  final String _agentUrl;
+  /// The A2A client used to communicate with the remote agent.
+  final A2AClient _client;
 
   /// Optional context string prepended to the first user message.
   /// Used by ResultsChat to inject analysis context.
@@ -35,21 +30,20 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
   /// Tracks whether the initial context has already been sent.
   bool _contextSent = false;
 
-  /// UUID generator for message IDs and JSON-RPC request IDs.
+  /// UUID generator for message IDs.
   static const _uuid = Uuid();
 
   /// Creates an [A2aProvider] instance.
   ///
-  /// - [agentUrl]: The A2A agent's base URL (JSON-RPC endpoint).
+  /// - [client]: An initialized [A2AClient] pointing to the A2A agent.
   /// - [initialContext]: Optional context string to prepend to the first
   ///   message (e.g., analysis summary for ResultsChat).
   /// - [history]: Optional initial chat history for session restoration.
   A2aProvider({
-    required String agentUrl,
+    required A2AClient client,
     String? initialContext,
     Iterable<ChatMessage>? history,
-  })  : _agentUrl = agentUrl.replaceAll(RegExp(r'/$'), ''),
-        _dio = Dio(),
+  })  : _client = client,
         _initialContext = initialContext,
         _history = history?.toList() ?? [];
 
@@ -133,72 +127,37 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
       message.contextId = _contextId;
     }
 
-    // Build send params and JSON-RPC 2.0 envelope
+    // Build send params
     final params = A2AMessageSendParams()..message = message;
-    final rpcRequest = {
-      'jsonrpc': '2.0',
-      'method': 'message/send',
-      'params': params.toJson(),
-      'id': _uuid.v4(),
-    };
 
     try {
-      final httpResponse = await _dio.post<Map<String, dynamic>>(
-        _agentUrl,
-        data: rpcRequest,
-        options: Options(
-          contentType: 'application/json',
-          responseType: ResponseType.json,
-        ),
-      );
+      final stream = _client.sendMessageStream(params);
 
-      final json = httpResponse.data;
-      if (json == null) {
-        throw Exception('A2A Error: empty response from agent');
-      }
+      await for (final response in stream) {
+        if (response.isError) {
+          final errorResponse = response as A2AJSONRPCErrorResponseSSM;
+          final errorCode = errorResponse.error?.rpcErrorCode;
+          final errorMsg = errorCode != null
+              ? A2AError.asString(errorCode)
+              : 'Unknown error';
+          throw Exception('A2A Error: $errorMsg');
+        }
 
-      // Check for JSON-RPC error
-      if (json.containsKey('error')) {
-        final error = json['error'];
-        final errorMsg = error is Map ? (error['message'] ?? 'Unknown error') : 'Unknown error';
-        throw Exception('A2A Error: $errorMsg');
-      }
+        final successResponse = response as A2ASendStreamMessageSuccessResponse;
+        final result = successResponse.result;
 
-      // Parse the result using A2A models
-      final resultJson = json['result'];
-      if (resultJson != null && resultJson is Map<String, dynamic>) {
-        final result = _parseResult(resultJson);
-        if (result != null) {
-          final text = _extractTextFromResult(result);
-          if (text != null && text.isNotEmpty) {
-            yield text;
-          }
+        if (result == null) continue;
+
+        // Handle different result types
+        final text = _extractTextFromResult(result);
+        if (text != null && text.isNotEmpty) {
+          yield text;
         }
       }
-    } on DioException catch (e) {
-      debugPrint('A2aProvider DioException: ${e.message}');
-      throw Exception('A2A network error: ${e.message}');
     } catch (e) {
       debugPrint('A2aProvider error: $e');
       rethrow;
     }
-  }
-
-  /// Parses the JSON-RPC result into the appropriate A2A model.
-  ///
-  /// The result can be an [A2ATask] (has 'status' + 'id') or an
-  /// [A2AMessage] (has 'role' + 'parts').
-  dynamic _parseResult(Map<String, dynamic> json) {
-    // A2ATask has 'id' and 'status' fields
-    if (json.containsKey('status') && json.containsKey('id')) {
-      return A2ATask.fromJson(json);
-    }
-    // A2AMessage has 'role' and 'parts' fields
-    if (json.containsKey('role') && json.containsKey('parts')) {
-      return A2AMessage.fromJson(json);
-    }
-    debugPrint('A2aProvider: unknown result type: ${json.keys}');
-    return null;
   }
 
   /// Extracts text content from an A2A result object.

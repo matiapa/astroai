@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
+import 'package:a2a/a2a.dart';
 
 import 'package:astro_guide/core/config/app_config.dart';
 import 'package:astro_guide/core/theme/app_theme.dart';
@@ -25,7 +26,8 @@ class _MainChatScreenState extends State<MainChatScreen> {
   @override
   void initState() {
     super.initState();
-    _provider = A2aProvider(agentUrl: AppConfig.a2aAgentUrl);
+    final client = A2AClient(AppConfig.a2aAgentUrl);
+    _provider = A2aProvider(client: client);
   }
 
   @override
