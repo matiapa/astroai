@@ -1,17 +1,28 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
 import 'package:a2a/a2a.dart';
 import 'package:uuid/uuid.dart';
 
 /// Custom [LlmProvider] that bridges the Flutter AI Toolkit to the
-/// A2A (Agent-to-Agent) protocol via [A2AClient].
+/// A2A (Agent-to-Agent) protocol using direct Dio HTTP + SSE streaming.
 ///
-/// This provider translates between the [LlmChatView] widget's expectations
-/// and the A2A protocol's streaming message API, enabling multi-turn
-/// conversations with a remote A2A agent (Atlas).
+/// This provider bypasses [A2AClient] entirely because:
+/// - The `a2a` package's agent card parser crashes on minimal capabilities.
+/// - Without the card, [A2AClient.sendMessageStream] refuses to run.
+///
+/// Instead, we POST JSON-RPC requests directly via Dio and parse the
+/// Server-Sent Events stream ourselves. A2A data models are still used
+/// for message serialization and response deserialization.
 class A2aProvider extends LlmProvider with ChangeNotifier {
-  /// The A2A client used to communicate with the remote agent.
-  final A2AClient _client;
+  /// The Dio HTTP client.
+  final Dio _dio;
+
+  /// The A2A agent endpoint URL.
+  final String _agentUrl;
 
   /// Optional context string prepended to the first user message.
   /// Used by ResultsChat to inject analysis context.
@@ -30,20 +41,21 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
   /// Tracks whether the initial context has already been sent.
   bool _contextSent = false;
 
-  /// UUID generator for message IDs.
+  /// UUID generator for message IDs and JSON-RPC request IDs.
   static const _uuid = Uuid();
 
   /// Creates an [A2aProvider] instance.
   ///
-  /// - [client]: An initialized [A2AClient] pointing to the A2A agent.
+  /// - [agentUrl]: The A2A agent's base URL (JSON-RPC endpoint).
   /// - [initialContext]: Optional context string to prepend to the first
   ///   message (e.g., analysis summary for ResultsChat).
   /// - [history]: Optional initial chat history for session restoration.
   A2aProvider({
-    required A2AClient client,
+    required String agentUrl,
     String? initialContext,
     Iterable<ChatMessage>? history,
-  })  : _client = client,
+  })  : _agentUrl = agentUrl.replaceAll(RegExp(r'/$'), ''),
+        _dio = Dio(),
         _initialContext = initialContext,
         _history = history?.toList() ?? [];
 
@@ -78,7 +90,8 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
     final llmMessage = ChatMessage.llm();
     _history.addAll([userMessage, llmMessage]);
 
-    final response = _callAgent(prompt, attachments: attachments, updateHistory: true);
+    final response =
+        _callAgent(prompt, attachments: attachments, updateHistory: true);
 
     yield* response.map((chunk) {
       llmMessage.append(chunk);
@@ -88,7 +101,8 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Core method that sends a message to the A2A agent and yields text chunks.
+  /// Core method that sends a message to the A2A agent via SSE streaming
+  /// and yields text chunks as they arrive.
   Stream<String> _callAgent(
     String prompt, {
     required Iterable<Attachment> attachments,
@@ -98,7 +112,9 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
     final parts = <A2APart>[];
 
     // If this is the first message and we have initial context, prepend it
-    if (!_contextSent && _initialContext != null && _initialContext.isNotEmpty) {
+    if (!_contextSent &&
+        _initialContext != null &&
+        _initialContext.isNotEmpty) {
       final contextPart = A2ATextPart()
         ..kind = 'text'
         ..text = _initialContext;
@@ -127,37 +143,143 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
       message.contextId = _contextId;
     }
 
-    // Build send params
+    // Build send params and JSON-RPC 2.0 envelope
     final params = A2AMessageSendParams()..message = message;
+    final rpcRequest = {
+      'jsonrpc': '2.0',
+      'method': 'message/stream',
+      'params': params.toJson(),
+      'id': _uuid.v4(),
+    };
 
     try {
-      final stream = _client.sendMessageStream(params);
+      final httpResponse = await _dio.post<ResponseBody>(
+        _agentUrl,
+        data: rpcRequest,
+        options: Options(
+          contentType: 'application/json',
+          responseType: ResponseType.stream,
+          headers: {'Accept': 'text/event-stream'},
+        ),
+      );
 
-      await for (final response in stream) {
-        if (response.isError) {
-          final errorResponse = response as A2AJSONRPCErrorResponseSSM;
-          final errorCode = errorResponse.error?.rpcErrorCode;
-          final errorMsg = errorCode != null
-              ? A2AError.asString(errorCode)
-              : 'Unknown error';
-          throw Exception('A2A Error: $errorMsg');
-        }
-
-        final successResponse = response as A2ASendStreamMessageSuccessResponse;
-        final result = successResponse.result;
-
-        if (result == null) continue;
-
-        // Handle different result types
-        final text = _extractTextFromResult(result);
-        if (text != null && text.isNotEmpty) {
-          yield text;
-        }
+      final responseStream = httpResponse.data;
+      if (responseStream == null) {
+        throw Exception('A2A Error: empty response from agent');
       }
+
+      // Parse the SSE stream
+      yield* _parseSseStream(responseStream.stream);
+    } on DioException catch (e) {
+      debugPrint('A2aProvider DioException: ${e.message}');
+      throw Exception('A2A network error: ${e.message}');
     } catch (e) {
       debugPrint('A2aProvider error: $e');
       rethrow;
     }
+  }
+
+  /// Parses a Server-Sent Events byte stream into text chunks.
+  ///
+  /// Each SSE event is one or more lines. Lines starting with `data:` carry
+  /// JSON-RPC payloads. Each `data:` line is treated as a separate JSON object.
+  Stream<String> _parseSseStream(Stream<Uint8List> byteStream) async* {
+    final lineBuffer = StringBuffer();
+
+    await for (final chunk in byteStream
+        .cast<List<int>>()
+        .transform(utf8.decoder)) {
+      lineBuffer.write(chunk);
+
+      // Split on any newline variant and process complete lines
+      var content = lineBuffer.toString();
+      // Normalize \r\n to \n, then lone \r to \n
+      content = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+      // Process all complete lines (ending with \n)
+      final lastNewline = content.lastIndexOf('\n');
+      if (lastNewline == -1) continue; // No complete line yet
+
+      final completeLines = content.substring(0, lastNewline);
+      final remainder = content.substring(lastNewline + 1);
+
+      lineBuffer.clear();
+      lineBuffer.write(remainder);
+
+      for (final line in completeLines.split('\n')) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('data:')) {
+          final jsonStr = trimmed.substring(5).trim();
+          if (jsonStr.isNotEmpty) {
+            final text = _processJsonPayload(jsonStr);
+            if (text != null && text.isNotEmpty) {
+              yield text;
+            }
+          }
+        }
+        // Ignore event:, id:, retry:, comments (:), and blank lines
+      }
+    }
+
+    // Process any remaining data in the buffer
+    final remaining = lineBuffer.toString().trim();
+    if (remaining.startsWith('data:')) {
+      final jsonStr = remaining.substring(5).trim();
+      if (jsonStr.isNotEmpty) {
+        final text = _processJsonPayload(jsonStr);
+        if (text != null && text.isNotEmpty) {
+          yield text;
+        }
+      }
+    }
+  }
+
+  /// Parses a single JSON-RPC payload from an SSE `data:` line.
+  String? _processJsonPayload(String jsonStr) {
+    try {
+      final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+      // Check for JSON-RPC error
+      if (json.containsKey('error')) {
+        final error = json['error'];
+        final errorMsg = error is Map
+            ? (error['message'] ?? 'Unknown error')
+            : 'Unknown error';
+        debugPrint('A2aProvider SSE error: $errorMsg');
+        return null;
+      }
+
+      // Parse the result
+      final resultJson = json['result'];
+      if (resultJson != null && resultJson is Map<String, dynamic>) {
+        final result = _parseResult(resultJson);
+        if (result != null) {
+          return _extractTextFromResult(result);
+        }
+      }
+    } catch (e) {
+      debugPrint('A2aProvider: failed to parse JSON payload: $e');
+    }
+
+    return null;
+  }
+
+  /// Parses the JSON-RPC result into the appropriate A2A model.
+  dynamic _parseResult(Map<String, dynamic> json) {
+    // A2ATaskStatusUpdateEvent has 'kind' == 'status-update'
+    if (json['kind'] == 'status-update') {
+      return A2ATaskStatusUpdateEvent.fromJson(json);
+    }
+    // A2ATask has 'id' and 'status' fields
+    if (json.containsKey('status') && json.containsKey('id')) {
+      return A2ATask.fromJson(json);
+    }
+    // A2AMessage has 'role' and 'parts' fields
+    if (json.containsKey('role') && json.containsKey('parts')) {
+      return A2AMessage.fromJson(json);
+    }
+    debugPrint('A2aProvider: unknown result type: ${json.keys}');
+    return null;
   }
 
   /// Extracts text content from an A2A result object.
@@ -168,20 +290,15 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
   /// - [A2AMessage]: Direct message with parts
   String? _extractTextFromResult(dynamic result) {
     if (result is A2ATaskStatusUpdateEvent) {
-      // Track task/context IDs
       _taskId = result.taskId;
       _contextId = result.contextId;
-
       return _extractTextFromMessage(result.status?.message);
     } else if (result is A2ATask) {
-      // Track task/context IDs
       _taskId = result.id;
       _contextId = result.contextId;
 
-      // First try the status message
       final statusText = _extractTextFromMessage(result.status?.message);
 
-      // Then try artifacts
       final artifactTexts = <String>[];
       if (result.artifacts != null) {
         for (final artifact in result.artifacts!) {
