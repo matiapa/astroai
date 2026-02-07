@@ -541,6 +541,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get deleteButton;
+
+  /// Label for the chat tab in the navigation bar
+  ///
+  /// In en, this message translates to:
+  /// **'Atlas'**
+  String get navChat;
+
+  /// Title shown in the chat app bar
+  ///
+  /// In en, this message translates to:
+  /// **'Atlas'**
+  String get chatAtlasTitle;
+
+  /// Welcome message shown when the main chat is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Hello! I\'m Atlas, your astronomy guide. Ask me anything about the night sky, constellations, planets, or celestial events.'**
+  String get chatWelcomeMessage;
+
+  /// First suggested chat prompt
+  ///
+  /// In en, this message translates to:
+  /// **'What constellations are visible tonight?'**
+  String get chatSuggestion1;
+
+  /// Second suggested chat prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Tell me about the Orion Nebula'**
+  String get chatSuggestion2;
+
+  /// Third suggested chat prompt
+  ///
+  /// In en, this message translates to:
+  /// **'How can I photograph the Milky Way?'**
+  String get chatSuggestion3;
+
+  /// Welcome message shown in the results chat screen
+  ///
+  /// In en, this message translates to:
+  /// **'I have context about your sky analysis. Ask me anything about the objects identified in your image!'**
+  String get chatResultsWelcome;
+
+  /// Generic go back button label
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get goBack;
 }
 
 class _AppLocalizationsDelegate

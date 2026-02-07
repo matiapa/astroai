@@ -4,6 +4,8 @@ import 'package:astro_guide/features/observatory/screens/observatory_screen.dart
 import 'package:astro_guide/features/logbook/screens/logbook_screen.dart';
 import 'package:astro_guide/features/settings/screens/settings_screen.dart';
 import 'package:astro_guide/features/results/screens/results_screen.dart';
+import 'package:astro_guide/features/chat/screens/main_chat_screen.dart';
+import 'package:astro_guide/features/chat/screens/results_chat_screen.dart';
 import 'responsive_scaffold.dart';
 
 /// Application routes configuration using GoRouter.
@@ -11,9 +13,10 @@ import 'responsive_scaffold.dart';
 /// Main navigation structure:
 /// - /observatory (home) - Camera/capture screen
 /// - /logbook - History gallery
+/// - /chat - General chat with Atlas AI agent
 /// - /settings - App preferences
 /// - /results/:id - Analysis results (accessed from observatory or logbook)
-/// - /chat/:id - Chat with AI about an analysis
+/// - /chat/:id - Contextual chat about a specific analysis
 final GoRouter appRouter = GoRouter(
   initialLocation: '/observatory',
   routes: [
@@ -36,6 +39,12 @@ final GoRouter appRouter = GoRouter(
               const NoTransitionPage(child: LogbookScreen()),
         ),
         GoRoute(
+          path: '/chat',
+          name: 'chat',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: MainChatScreen()),
+        ),
+        GoRoute(
           path: '/settings',
           name: 'settings',
           pageBuilder: (context, state) =>
@@ -52,14 +61,14 @@ final GoRouter appRouter = GoRouter(
         return ResultsScreen(analysisId: id);
       },
     ),
-    // Chat screen (outside shell route - no bottom nav)
-    // GoRoute(
-    //   path: '/chat/:id',
-    //   name: 'chat',
-    //   builder: (context, state) {
-    //     final id = state.pathParameters['id']!;
-    //     return ChatScreen(analysisId: id);
-    //   },
-    // ),
+    // Results chat screen (outside shell route - no bottom nav)
+    GoRoute(
+      path: '/chat/:id',
+      name: 'results_chat',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return ResultsChatScreen(analysisId: id);
+      },
+    ),
   ],
 );

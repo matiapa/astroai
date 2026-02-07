@@ -30,6 +30,14 @@ class AppConfig {
     defaultValue: 'development',
   );
 
+  /// Base URL for the A2A agent (Atlas).
+  ///
+  /// Set via: `--dart-define=A2A_AGENT_URL=http://localhost:10000`
+  static const String a2aAgentUrl = String.fromEnvironment(
+    'A2A_AGENT_URL',
+    defaultValue: 'http://localhost:8000/a2a',
+  );
+
   /// Whether to bypass the API and use mock data.
   ///
   /// Set via: `--dart-define=USE_MOCK_DATA=true`

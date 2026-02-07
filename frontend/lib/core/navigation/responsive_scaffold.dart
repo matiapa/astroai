@@ -59,6 +59,11 @@ class ResponsiveScaffold extends StatelessWidget {
               label: AppLocalizations.of(context)!.navLog,
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: AppLocalizations.of(context)!.navChat,
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.settings_outlined),
               activeIcon: Icon(Icons.settings),
               label: AppLocalizations.of(context)!.navSettings,
@@ -97,6 +102,11 @@ class ResponsiveScaffold extends StatelessWidget {
                 label: Text(AppLocalizations.of(context)!.navLog),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.chat_bubble_outline),
+                selectedIcon: Icon(Icons.chat_bubble),
+                label: Text(AppLocalizations.of(context)!.navChat),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.settings_outlined),
                 selectedIcon: Icon(Icons.settings),
                 label: Text(AppLocalizations.of(context)!.navSettings),
@@ -112,7 +122,8 @@ class ResponsiveScaffold extends StatelessWidget {
 
   int _getIndexFromPath(String path) {
     if (path.startsWith('/logbook')) return 1;
-    if (path.startsWith('/settings')) return 2;
+    if (path.startsWith('/chat')) return 2;
+    if (path.startsWith('/settings')) return 3;
     return 0; // Default to observatory
   }
 
@@ -125,6 +136,9 @@ class ResponsiveScaffold extends StatelessWidget {
         context.go('/logbook');
         break;
       case 2:
+        context.go('/chat');
+        break;
+      case 3:
         context.go('/settings');
         break;
     }

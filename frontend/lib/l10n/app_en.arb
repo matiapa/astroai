@@ -153,5 +153,38 @@
     "deleteLogTitle": "Delete Log",
     "deleteLogMessage": "Are you sure you want to delete this log? This action cannot be undone.",
     "cancelButton": "Cancel",
-    "deleteButton": "Delete"
+    "deleteButton": "Delete",
+
+    "navChat": "Atlas",
+    "@navChat": {
+        "description": "Label for the chat tab in the navigation bar"
+    },
+    "chatAtlasTitle": "Atlas",
+    "@chatAtlasTitle": {
+        "description": "Title shown in the chat app bar"
+    },
+    "chatWelcomeMessage": "Hello! I'm Atlas, your astronomy guide. Ask me anything about the night sky, constellations, planets, or celestial events.",
+    "@chatWelcomeMessage": {
+        "description": "Welcome message shown when the main chat is empty"
+    },
+    "chatSuggestion1": "What constellations are visible tonight?",
+    "@chatSuggestion1": {
+        "description": "First suggested chat prompt"
+    },
+    "chatSuggestion2": "Tell me about the Orion Nebula",
+    "@chatSuggestion2": {
+        "description": "Second suggested chat prompt"
+    },
+    "chatSuggestion3": "How can I photograph the Milky Way?",
+    "@chatSuggestion3": {
+        "description": "Third suggested chat prompt"
+    },
+    "chatResultsWelcome": "I have context about your sky analysis. Ask me anything about the objects identified in your image!",
+    "@chatResultsWelcome": {
+        "description": "Welcome message shown in the results chat screen"
+    },
+    "goBack": "Go back",
+    "@goBack": {
+        "description": "Generic go back button label"
+    }
 }

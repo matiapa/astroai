@@ -248,4 +248,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteButton => 'Delete';
+
+  @override
+  String get navChat => 'Atlas';
+
+  @override
+  String get chatAtlasTitle => 'Atlas';
+
+  @override
+  String get chatWelcomeMessage =>
+      'Hello! I\'m Atlas, your astronomy guide. Ask me anything about the night sky, constellations, planets, or celestial events.';
+
+  @override
+  String get chatSuggestion1 => 'What constellations are visible tonight?';
+
+  @override
+  String get chatSuggestion2 => 'Tell me about the Orion Nebula';
+
+  @override
+  String get chatSuggestion3 => 'How can I photograph the Milky Way?';
+
+  @override
+  String get chatResultsWelcome =>
+      'I have context about your sky analysis. Ask me anything about the objects identified in your image!';
+
+  @override
+  String get goBack => 'Go back';
 }
