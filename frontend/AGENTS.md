@@ -58,7 +58,7 @@ Features adapt to platform capabilities:
 | AI-powered sky analysis | Results | Complete |
 | Interactive object hotspots | Results | Complete |
 | Audio narration playback | Results | Complete |
-| Conversational AI chat | Chat | Placeholder |
+| Conversational AI chat (Atlas) | Chat | Complete |
 | Discovery history gallery | Logbook | Complete |
 | User preferences | Settings | Complete |
 | Internationalization | All | Complete (EN/ES) |
@@ -103,8 +103,13 @@ lib/
     │   └── screens/
     │       └── settings_screen.dart       # Preferences
     └── chat/
-        └── screens/
-            └── chat_screen.dart           # Placeholder for A2A
+        ├── providers/
+        │   └── a2a_provider.dart          # A2A JSON-RPC bridge (Dio)
+        ├── screens/
+        │   ├── main_chat_screen.dart      # Main Atlas chat
+        │   └── results_chat_screen.dart   # Contextual analysis chat
+        └── theme/
+            └── chat_theme.dart            # Deep Space chat styles
 ```
 
 ### State Management Strategy
@@ -115,7 +120,7 @@ lib/
 ### Navigation
 - **GoRouter** handles all routing including deep links
 - **ShellRoute** wraps main screens with responsive navigation
-- Routes: `/observatory`, `/logbook`, `/settings`, `/results/:id`, `/chat/:id`
+- Routes: `/observatory`, `/logbook`, `/chat`, `/settings`, `/results/:id`, `/chat/:id`
 
 ### Responsive Navigation
 ```dart
@@ -154,8 +159,8 @@ The A2A (Agent-to-Agent) protocol provides a standardized way for the Flutter ap
 - Task-based conversation management
 - Built-in artifact handling
 
-### Why separate Chat implementation is deferred?
-The A2A Dart package API requires a running A2A server. The chat screen is a placeholder until the backend agent is deployed and tested.
+### Why direct JSON-RPC calls for A2A on web?
+The web build rejects streaming request bodies without `duplex: "half"`, which the `a2a` package's HTTP layer doesn't set. The app uses Dio to send standard JSON-RPC POSTs while still leveraging A2A models for parsing.
 
 ---
 
@@ -251,8 +256,8 @@ The frontend navigates to results screen on `narration_complete`, showing an aud
 - `Nebula` — Emission/reflection nebulae
 - `Cluster` — Star clusters
 
-### A2A Chat (Deferred)
-Uses the A2A protocol specification for message/stream communication with the backend agent.
+### A2A Chat
+Atlas chat is implemented with Flutter AI Toolkit's `LlmChatView`, backed by an A2A JSON-RPC provider. The agent URL is configured via `A2A_AGENT_URL` (set with `--dart-define=A2A_AGENT_URL=http://localhost:8000/a2a`).
 
 ---
 
@@ -315,10 +320,9 @@ make clean
 ## Pending Work
 
 1. **Camera Integration**: Connect `camera` package to Observatory screen
-2. **A2A Chat**: Integrate when backend agent is ready
-3. **PWA Config**: Add manifest.json and service worker
-4. **Testing**: Widget tests, integration tests
-5. **Accessibility Audit**: Screen reader, contrast verification
+2. **PWA Config**: Add manifest.json and service worker
+3. **Testing**: Widget tests, integration tests
+4. **Accessibility Audit**: Screen reader, contrast verification
 
 ---
 
