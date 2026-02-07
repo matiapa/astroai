@@ -26,7 +26,10 @@ class _MainChatScreenState extends State<MainChatScreen> {
   @override
   void initState() {
     super.initState();
-    final client = A2AClient(AppConfig.a2aAgentUrl);
+    final client = A2AClient(
+      AppConfig.a2aAgentUrl,
+      agentCardBackgroundFetch: false,
+    );
     _provider = A2aProvider(client: client);
   }
 

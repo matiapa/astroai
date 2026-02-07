@@ -48,7 +48,10 @@ class _ResultsChatScreenState extends State<ResultsChatScreen> {
 
       final result = entry.analysisResult;
       final context = _buildContextString(result);
-      final client = A2AClient(AppConfig.a2aAgentUrl);
+      final client = A2AClient(
+        AppConfig.a2aAgentUrl,
+        agentCardBackgroundFetch: false,
+      );
 
       setState(() {
         _analysisTitle = result.narration?.title;
