@@ -110,3 +110,53 @@ root_agent = Agent(
         search_tool,
     ],
 )
+
+from a2a.server.apps import A2AStarletteApplication
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.tasks import InMemoryTaskStore
+from a2a.types import AgentCard
+
+from google.adk.a2a.executor.a2a_agent_executor import A2aAgentExecutor
+from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
+from google.adk.auth.credential_service.in_memory_credential_service import InMemoryCredentialService
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from google.adk.runners import Runner
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
+
+_url = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
+
+_agent_card = AgentCard(
+    name=root_agent.name,
+    url=f"{_url}/a2a/",
+    description=root_agent.description,
+    version="1.0.0",
+    capabilities={},
+    skills=[],
+    defaultInputModes=["text/plain"],
+    defaultOutputModes=["text/plain"],
+    supportsAuthenticatedExtendedCard=False,
+)
+
+
+async def _create_runner() -> Runner:
+    return Runner(
+        app_name=root_agent.name or "adk_agent",
+        agent=root_agent,
+        artifact_service=InMemoryArtifactService(),
+        session_service=InMemorySessionService(),
+        memory_service=InMemoryMemoryService(),
+        credential_service=InMemoryCredentialService(),
+    )
+
+
+_task_store = InMemoryTaskStore()
+_agent_executor = A2aAgentExecutor(runner=_create_runner)
+_request_handler = DefaultRequestHandler(
+    agent_executor=_agent_executor,
+    task_store=_task_store,
+)
+
+a2a_app = A2AStarletteApplication(
+    agent_card=_agent_card,
+    http_handler=_request_handler,
+).build()

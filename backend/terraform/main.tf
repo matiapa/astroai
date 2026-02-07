@@ -156,6 +156,12 @@ resource "google_cloud_run_v2_service" "default" {
         name  = "VERBOSE"
         value = var.verbose
       }
+
+      # Public URL
+      env {
+        name  = "PUBLIC_API_URL"
+        value = var.public_api_url
+      }
     }
   }
 

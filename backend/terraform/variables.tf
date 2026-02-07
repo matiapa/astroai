@@ -117,3 +117,9 @@ variable "verbose" {
   type        = string
   default     = "true"
 }
+
+variable "public_api_url" {
+  description = "Public-facing base URL of the API (used for A2A agent card, etc.)"
+  type        = string
+  default     = "http://localhost:8000"
+}

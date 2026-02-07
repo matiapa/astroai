@@ -25,6 +25,8 @@ from src.api.analyze.controller import analyze_image_stream
 
 from fastapi.middleware.cors import CORSMiddleware
 
+from agents.astro_guide.agent import a2a_app
+
 # ============================================================================
 # FastAPI Application
 # ============================================================================
@@ -42,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount A2A agent as a sub-application
+app.mount("/a2a", a2a_app)
 
 
 @app.get("/")
