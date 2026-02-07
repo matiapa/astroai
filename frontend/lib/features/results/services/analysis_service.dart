@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:astro_guide/core/config/app_config.dart';
 import 'package:astro_guide/features/results/models/analysis_result.dart';
+import 'package:astro_guide/features/results/services/analysis_service_web.dart'
+    if (dart.library.io) 'package:astro_guide/features/results/services/analysis_service_stub.dart';
 
 /// Service for communicating with the analyze API.
 class AnalysisService {
@@ -41,6 +44,13 @@ class AnalysisService {
       return;
     }
 
+    // Use web-specific SSE streaming on web platform for proper real-time updates
+    if (kIsWeb) {
+      yield* analyzeImageStreamWeb('$_baseUrl/analyze', bytes, filename);
+      return;
+    }
+
+    // Native platform implementation using Dio
     try {
       final formData = FormData.fromMap({
         'image': MultipartFile.fromBytes(bytes, filename: filename),
@@ -57,126 +67,123 @@ class AnalysisService {
         ),
       );
 
-      final stream = response.data.stream as Stream<List<int>>;
+      final stream = (response.data.stream as Stream).cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
 
       // State for accumulating partial results
       AnalysisResult? currentResult;
       String? currentEvent;
       StringBuffer dataBuffer = StringBuffer();
 
-      await for (final chunk in stream) {
-        final String chunkStr = String.fromCharCodes(chunk);
-        final lines = chunkStr.split('\n');
+      await for (final line in stream) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.substring(6).trim();
+        } else if (line.startsWith('data:')) {
+          dataBuffer.write(line.substring(5).trim());
+        } else if (line.isEmpty && currentEvent != null) {
+          // Empty line signals end of event - process it
+          final dataStr = dataBuffer.toString();
+          dataBuffer.clear();
 
-        for (final line in lines) {
-          if (line.startsWith('event:')) {
-            currentEvent = line.substring(6).trim();
-          } else if (line.startsWith('data:')) {
-            dataBuffer.write(line.substring(5).trim());
-          } else if (line.isEmpty && currentEvent != null) {
-            // Empty line signals end of event - process it
-            final dataStr = dataBuffer.toString();
-            dataBuffer.clear();
+          switch (currentEvent) {
+            case 'analyzing_image':
+              yield AnalysisStep.analyzingImage;
+              break;
 
-            switch (currentEvent) {
-              case 'analyzing_image':
-                yield AnalysisStep.analyzingImage;
-                break;
+            case 'analysis_complete':
+              if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
+                final json = _parseJson(dataStr);
+                currentResult = AnalysisResult(
+                  success: true,
+                  plateSolving: json['plate_solving'] != null
+                      ? PlateSolving.fromJson(json['plate_solving'])
+                      : null,
+                  identifiedObjects: (json['identified_objects'] as List?)
+                          ?.map((e) => IdentifiedObject.fromJson(e))
+                          .toList() ??
+                      [],
+                );
+                yield AnalysisStep.analysisComplete;
+              }
+              break;
 
-              case 'analysis_complete':
-                if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
-                  final json = _parseJson(dataStr);
-                  currentResult = AnalysisResult(
-                    success: true,
-                    plateSolving: json['plate_solving'] != null
-                        ? PlateSolving.fromJson(json['plate_solving'])
-                        : null,
-                    identifiedObjects: (json['identified_objects'] as List?)
-                            ?.map((e) => IdentifiedObject.fromJson(e))
-                            .toList() ??
-                        [],
+            case 'generating_narration':
+              yield AnalysisStep.generatingNarration;
+              break;
+
+            case 'narration_complete':
+              if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
+                final json = _parseJson(dataStr);
+                // Build object legends map
+                final objectLegends =
+                    Map<String, String>.from(json['object_legends'] ?? {});
+
+                // Update identified objects with their legends
+                final updatedObjects =
+                    currentResult?.identifiedObjects.map((obj) {
+                          final legend = objectLegends[obj.name] ??
+                              objectLegends[obj.displayName];
+                          if (legend != null) {
+                            return IdentifiedObject(
+                              name: obj.name,
+                              type: obj.type,
+                              subtype: obj.subtype,
+                              magnitudeVisual: obj.magnitudeVisual,
+                              bvColorIndex: obj.bvColorIndex,
+                              spectralType: obj.spectralType,
+                              morphologicalType: obj.morphologicalType,
+                              distanceLightyears: obj.distanceLightyears,
+                              alternativeNames: obj.alternativeNames,
+                              celestialCoords: obj.celestialCoords,
+                              pixelCoords: obj.pixelCoords,
+                              legend: legend,
+                            );
+                          }
+                          return obj;
+                        }).toList() ??
+                        [];
+
+                currentResult = (currentResult ?? const AnalysisResult(success: true))
+                    .copyWith(
+                  narration: Narration(
+                    title: json['title'] ?? '',
+                    text: json['text'] ?? '',
+                  ),
+                  identifiedObjects: updatedObjects,
+                );
+                yield AnalysisStep.narrationComplete;
+                yield currentResult;
+              }
+              break;
+
+            case 'generating_audio':
+              yield AnalysisStep.generatingAudio;
+              break;
+
+            case 'audio_complete':
+              if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
+                final json = _parseJson(dataStr);
+                final audioUrl = json['audio_url'] as String?;
+                final narration = currentResult?.narration;
+                if (audioUrl != null && narration != null) {
+                  currentResult = currentResult!.copyWith(
+                    narration: narration.copyWith(audioUrl: audioUrl),
                   );
-                  yield AnalysisStep.analysisComplete;
-                }
-                break;
-
-              case 'generating_narration':
-                yield AnalysisStep.generatingNarration;
-                break;
-
-              case 'narration_complete':
-                if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
-                  final json = _parseJson(dataStr);
-                  // Build object legends map
-                  final objectLegends =
-                      Map<String, String>.from(json['object_legends'] ?? {});
-
-                  // Update identified objects with their legends
-                  final updatedObjects =
-                      currentResult?.identifiedObjects.map((obj) {
-                            final legend = objectLegends[obj.name] ??
-                                objectLegends[obj.displayName];
-                            if (legend != null) {
-                              return IdentifiedObject(
-                                name: obj.name,
-                                type: obj.type,
-                                subtype: obj.subtype,
-                                magnitudeVisual: obj.magnitudeVisual,
-                                bvColorIndex: obj.bvColorIndex,
-                                spectralType: obj.spectralType,
-                                morphologicalType: obj.morphologicalType,
-                                distanceLightyears: obj.distanceLightyears,
-                                alternativeNames: obj.alternativeNames,
-                                celestialCoords: obj.celestialCoords,
-                                pixelCoords: obj.pixelCoords,
-                                legend: legend,
-                              );
-                            }
-                            return obj;
-                          }).toList() ??
-                          [];
-
-                  currentResult = (currentResult ?? const AnalysisResult(success: true))
-                      .copyWith(
-                    narration: Narration(
-                      title: json['title'] ?? '',
-                      text: json['text'] ?? '',
-                    ),
-                    identifiedObjects: updatedObjects,
-                  );
-                  yield AnalysisStep.narrationComplete;
+                  yield AnalysisStep.finished;
                   yield currentResult;
                 }
-                break;
+              }
+              break;
 
-              case 'generating_audio':
-                yield AnalysisStep.generatingAudio;
-                break;
-
-              case 'audio_complete':
-                if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
-                  final json = _parseJson(dataStr);
-                  final audioUrl = json['audio_url'] as String?;
-                  final narration = currentResult?.narration;
-                  if (audioUrl != null && narration != null) {
-                    currentResult = currentResult!.copyWith(
-                      narration: narration.copyWith(audioUrl: audioUrl),
-                    );
-                    yield AnalysisStep.finished;
-                    yield currentResult;
-                  }
-                }
-                break;
-
-              case 'error':
-                if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
-                  final json = _parseJson(dataStr);
-                  throw Exception(json['error'] ?? 'Unknown error');
-                }
-                break;
-            }
-            currentEvent = null;
+            case 'error':
+              if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
+                final json = _parseJson(dataStr);
+                throw Exception(json['error'] ?? 'Unknown error');
+              }
+              break;
           }
+          currentEvent = null;
         }
       }
     } on DioException catch (e) {

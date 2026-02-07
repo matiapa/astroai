@@ -153,7 +153,7 @@ class IdentifiedObject {
   final double? distanceLightyears;
 
   /// Alternative designations.
-  final String? alternativeNames;
+  final List<String>? alternativeNames;
 
   /// Celestial coordinates (RA/Dec).
   final CelestialCoords celestialCoords;

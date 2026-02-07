@@ -605,7 +605,7 @@ class _ObjectDetailDialog extends StatelessWidget {
                     _DetailRow(
                       icon: Icons.label,
                       label: AppLocalizations.of(context)!.alsoKnownAsLabel,
-                      value: object.alternativeNames!,
+                      value: object.alternativeNames!.join(', '),
                     ),
                   ],
 
