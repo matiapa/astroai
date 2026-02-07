@@ -1,0 +1,157 @@
+{
+    "@@locale": "en",
+    "settingsTitle": "Settings",
+    "appTitle": "AstroGuide",
+    "@appTitle": {
+        "description": "The name of the application"
+    },
+    "@settingsTitle": {
+        "description": "Title of the settings screen"
+    },
+    "settingsPlaybackSection": "PLAYBACK",
+    "@settingsPlaybackSection": {
+        "description": "Header for the playback settings section"
+    },
+    "settingsAutoPlay": "Auto-play narration",
+    "@settingsAutoPlay": {
+        "description": "Label for auto-play toggle"
+    },
+    "settingsAutoPlaySubtitle": "Automatically play audio after analysis",
+    "@settingsAutoPlaySubtitle": {
+        "description": "Subtitle for auto-play toggle"
+    },
+    "settingsLanguageSection": "LANGUAGE",
+    "@settingsLanguageSection": {
+        "description": "Header for the language settings section"
+    },
+    "settingsLanguage": "Language",
+    "@settingsLanguage": {
+        "description": "Label for language selector"
+    },
+    "settingsLanguageEn": "English",
+    "settingsLanguageEs": "Español",
+    "settingsAboutSection": "ABOUT",
+    "@settingsAboutSection": {
+        "description": "Header for the about settings section"
+    },
+    "settingsVersion": "Version {version}",
+    "@settingsVersion": {
+        "description": "Version display",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsOpenSourceLicenses": "Open source licenses",
+    "@settingsOpenSourceLicenses": {
+        "description": "Label for open source licenses link"
+    },
+
+    "analysisFailed": "Analysis failed: {error}",
+    "@analysisFailed": {
+        "placeholders": {
+            "error": {
+                "type": "Object"
+            }
+        }
+    },
+    "analyzingCosmos": "Analyzing Cosmos",
+    "consultingArchives": "Consulting Archives",
+    "synthesizingVoice": "Synthesizing Voice",
+    "discoveryComplete": "Discovery Complete",
+    "processing": "Processing...",
+    "identifyingCelestialObjects": "Identifying stars, nebulae, and galaxies...",
+    "craftingStory": "Crafting a story for your discovery...",
+    "preparingAudioGuide": "Preparing your audio guide...",
+    "preparingResults": "Preparing results...",
+    "pleaseWait": "Please wait...",
+
+    "assetNotFound": "Asset not found: {assetPath}",
+    "@assetNotFound": {
+        "placeholders": {
+            "assetPath": {
+                "type": "Object"
+            }
+        }
+    },
+    "errorPickingImage": "Error picking image: {error}",
+    "@errorPickingImage": {
+        "placeholders": {
+            "error": {
+                "type": "Object"
+            }
+        }
+    },
+    "captureError": "Capture error: {error}",
+    "@captureError": {
+        "placeholders": {
+            "error": {
+                "type": "Object"
+            }
+        }
+    },
+    "cameraNotAvailable": "Camera not available: {error}",
+    "@cameraNotAvailable": {
+        "placeholders": {
+            "error": {
+                "type": "Object"
+            }
+        }
+    },
+    "openingCamera": "Opening Camera...",
+    "loadingCamera": "Loading Camera...",
+    "orSelectFromGalleryCatalog": "Or select from gallery / catalog",
+    "zoomLabel": "ZOOM",
+    "exposureLabel": "EXP",
+    "galleryButton": "Gallery",
+    "catalogButton": "Catalog",
+
+    "noAnalysisDataFound": "No analysis data found",
+    "returnToObservatory": "Return to Observatory",
+    "generatingAudioStatus": "GENERATING AUDIO...",
+    "analysisCompleteStatus": "ANALYSIS COMPLETE",
+    "askAboutThisView": "Ask about this view",
+    "tapForDetails": "Tap for details",
+    "viewLess": "View less",
+    "viewMore": "View more",
+    "coordinatesLabel": "Coordinates",
+    "distanceLabel": "Distance",
+    "magnitudeLabel": "Magnitude",
+    "spectralTypeLabel": "Spectral Type",
+    "morphologyLabel": "Morphology",
+    "alsoKnownAsLabel": "Also Known As",
+    "generatingAudioTitle": "GENERATING AUDIO",
+    "audioNarrationPending": "Audio narration will appear here shortly",
+    "audioLoadError": "Could not load audio: {error}",
+    "@audioLoadError": {
+        "placeholders": {
+            "error": {
+                "type": "Object"
+            }
+        }
+    },
+    "navObservatory": "Observatory",
+    "navLog": "Log",
+    "navSettings": "Settings",
+    "logbookTitle": "My Discoveries",
+    "logbookSearchHint": "Scan for objects...",
+    "logbookEmpty": "No discoveries yet",
+    "logbookNoResults": "No matching discoveries",
+    "logbookEmptyHint": "Capture your first sky image to begin",
+    "logbookNoResultsHint": "Try a different search term",
+    "goToObservatory": "Go to Observatory",
+    "chatBotName": "Astro-Guide 9000",
+    "comingSoon": "Coming Soon",
+    "chatFeatureComingSoon": "Chat Feature Coming Soon",
+    "chatFutureUpdate": "The AI-powered chat assistant will be available in a future update.",
+    "referenceCatalog": "Reference Catalog",
+    "selectSampleImage": "Select a sample image to analyze",
+    "captureLabel": "Capture",
+    "analyzeWithAi": "Analyze with AI",
+    "analyzeLabel": "Analyze",
+    "deleteLogTitle": "Delete Log",
+    "deleteLogMessage": "Are you sure you want to delete this log? This action cannot be undone.",
+    "cancelButton": "Cancel",
+    "deleteButton": "Delete"
+}

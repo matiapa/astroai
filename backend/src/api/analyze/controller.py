@@ -7,29 +7,25 @@ import os
 import uuid
 import base64
 import json
-from typing import Optional
 
 from fastapi import UploadFile
 
 from src.tools.capture_sky.tool import SkyCaptureTool
 from src.services.narration_generator import NarrationGenerator
 from src.services.tts_service import TTSService
-from src.api.analyze.dto import (
-    AnalyzeResponse,
-    PlateSolving,
-    Narration,
-    IdentifiedObject,
-)
+from src.config import get_config_from_env
 
 
 # Directory for temporary audio files
-TMP_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "tmp")
 
 
-def _ensure_tmp_dir() -> str:
-    """Ensure tmp directory exists and return its path."""
-    os.makedirs(TMP_DIR, exist_ok=True)
-    return TMP_DIR
+def _ensure_audios_dir() -> str:
+    config = get_config_from_env()
+    audios_dir = os.path.join(config.storage_dir, "audios")
+
+    """Ensure audios directory exists and return its path."""
+    os.makedirs(audios_dir, exist_ok=True)
+    return audios_dir
 
 
 async def analyze_image_stream(
@@ -118,8 +114,8 @@ async def analyze_image_stream(
         
         # Generate unique filename for audio
         audio_filename = f"narration_{uuid.uuid4().hex[:8]}.wav"
-        tmp_dir = _ensure_tmp_dir()
-        audio_output_path = os.path.join(tmp_dir, audio_filename)
+        audios_dir = _ensure_audios_dir()
+        audio_output_path = os.path.join(audios_dir, audio_filename)
         
         _, saved_path = await asyncio.to_thread(
             tts_service.generate_audio,

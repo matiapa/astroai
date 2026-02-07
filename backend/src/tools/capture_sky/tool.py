@@ -88,7 +88,7 @@ class SkyCaptureTool:
         Raises:
             RuntimeError: If plate solving fails
         """
-        cache_path = os.path.join(self.config.logs_dir, "wcs.pkl")
+        cache_path = os.path.join(self.config.storage_dir, "logs", "wcs.pkl")
         
         # Try to load from cache if enabled
         if self.config.plate_solving_use_cache and os.path.exists(cache_path):
@@ -344,7 +344,7 @@ class SkyCaptureTool:
         # Step 0: Prepare logs dir with datetime string
 
         datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        logs_dir = os.path.join(self.config.logs_dir, datetime_str)
+        logs_dir = os.path.join(self.config.storage_dir, "logs", datetime_str)
         os.makedirs(logs_dir, exist_ok=True)
  
         # Step 1: Decode base64 image

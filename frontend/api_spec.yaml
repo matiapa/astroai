@@ -1,0 +1,199 @@
+openapi: 3.0.3
+info:
+  title: AstroIA API
+  description: API for analyzing astronomical images
+  version: 1.0.0
+
+paths:
+  /analyze:
+    post:
+      summary: Analyze an astronomical image
+      description: Receives a base64-encoded image and returns analysis results including plate solving, narration, and identified celestial objects.
+      operationId: analyzeImage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: byte
+                  description: Base64-encoded image data
+      responses:
+        "200":
+          description: Successful analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResponse"
+        "400":
+          description: Bad request - invalid image format
+        "500":
+          description: Internal server error
+
+  /chat:
+    post:
+      summary: Send a chat message
+      description: >
+        OpenAI-compatible chat completions endpoint. Supports multimodal inputs
+        including text, images, and audio.
+      operationId: createChatCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatCompletionRequest"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatCompletionResponse"
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+components:
+  schemas:
+    AnalysisResponse:
+      type: object
+      required:
+        - success
+        - plate_solving
+        - narration
+        - identified_objects
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the analysis was successful
+        plate_solving:
+          $ref: "#/components/schemas/PlateSolving"
+        narration:
+          $ref: "#/components/schemas/Narration"
+        identified_objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/IdentifiedObject"
+
+    PlateSolving:
+      type: object
+      required:
+        - center_ra_deg
+        - center_dec_deg
+        - pixel_scale_arcsec
+      properties:
+        center_ra_deg:
+          type: number
+          format: double
+          description: Right ascension of the image center in degrees
+        center_dec_deg:
+          type: number
+          format: double
+          description: Declination of the image center in degrees
+        pixel_scale_arcsec:
+          type: number
+          format: double
+          description: Pixel scale in arcseconds per pixel
+
+    Narration:
+      type: object
+      required:
+        - title
+        - text
+        - audio_url
+      properties:
+        title:
+          type: string
+          description: Title of the narration
+        text:
+          type: string
+          description: Narrative description of the identified objects
+        audio_url:
+          type: string
+          format: uri
+          description: URL to the audio narration file
+
+    IdentifiedObject:
+      type: object
+      required:
+        - name
+        - type
+        - celestial_coords
+        - pixel_coords
+        - legend
+      properties:
+        name:
+          type: string
+          description: Name or catalog identifier of the object
+        type:
+          type: string
+          description: Type of celestial object (e.g., Star, Galaxy, Nebula)
+        subtype:
+          type: string
+          description: Subtype classification of the object
+        magnitude_visual:
+          type: number
+          format: double
+          description: Visual magnitude of the object
+        bv_color_index:
+          type: number
+          format: double
+          description: B-V color index of the object
+        spectral_type:
+          type: string
+          description: Spectral type classification (e.g., M3.2, G2V)
+        distance_lightyears:
+          type: number
+          format: double
+          description: Distance to the object in light-years
+        celestial_coords:
+          $ref: "#/components/schemas/CelestialCoords"
+        pixel_coords:
+          $ref: "#/components/schemas/PixelCoords"
+        legend:
+          type: string
+          description: Human-readable description of the object
+
+    CelestialCoords:
+      type: object
+      required:
+        - ra_deg
+        - dec_deg
+        - radius_arcsec
+      properties:
+        ra_deg:
+          type: number
+          format: double
+          description: Right ascension in degrees
+        dec_deg:
+          type: number
+          format: double
+          description: Declination in degrees
+        radius_arcsec:
+          type: number
+          format: double
+          description: Angular radius in arcseconds
+
+    PixelCoords:
+      type: object
+      required:
+        - x
+        - y
+        - radius_pixels
+      properties:
+        x:
+          type: integer
+          description: X coordinate in pixels
+        y:
+          type: integer
+          description: Y coordinate in pixels
+        radius_pixels:
+          type: integer
+          description: Radius in pixels

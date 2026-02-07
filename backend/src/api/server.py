@@ -4,6 +4,7 @@ AstroIA API Server
 FastAPI server providing the POST /analyze endpoint for astronomical image analysis.
 """
 
+from src.config import get_config_from_env
 import os
 import sys
 from pathlib import Path
@@ -19,7 +20,7 @@ sys.path.insert(0, str(project_root))
 from sse_starlette.sse import EventSourceResponse
 
 from src.api.analyze.dto import AnalyzeResponse
-from src.api.analyze.controller import analyze_image_stream, TMP_DIR
+from src.api.analyze.controller import analyze_image_stream
 
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -71,15 +72,16 @@ async def analyze(
 @app.get("/audio/{filename}")
 async def get_audio(filename: str):
     """
-    Serve audio files from the tmp directory.
+    Serve audio files from the audios directory.
     """
-    file_path = os.path.join(TMP_DIR, filename)
+    config = get_config_from_env()
+    audios_dir = os.path.join(config.storage_dir, "audios")
     
-    if not os.path.exists(file_path):
+    if not os.path.exists(audios_dir):
         return {"error": "Audio file not found"}, 404
     
     return FileResponse(
-        path=file_path,
+        path=os.path.join(audios_dir, filename),
         media_type="audio/wav",
         filename=filename,
         headers={"Access-Control-Allow-Origin": "*"}

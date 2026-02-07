@@ -1,0 +1,78 @@
+# =============================================================================
+# Terraform Variables - Example Configuration
+# =============================================================================
+# Copy this file to terraform.tfvars and update with your values
+# Run: cp terraform.tfvars.example terraform.tfvars
+# =============================================================================
+
+# =============================================================================
+# Required Variables
+# =============================================================================
+
+# Your Google Cloud Project ID
+project_id = "your-project-id"
+
+# Container image in Artifact Registry
+# Format: REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE:TAG
+image_name = "us-central1-docker.pkg.dev/your-project-id/astroia-repo/astroia-backend:latest"
+
+# GCS bucket to mount at /mnt/data (must exist before deployment)
+gcs_bucket_name = "your-bucket-name"
+
+# =============================================================================
+# API Keys (Required - Sensitive)
+# =============================================================================
+
+# Google API Key for Gemini
+google_api_key = "your-google-api-key"
+
+# Google Custom Search Engine ID (optional)
+google_cse_id = "your-cse-id"
+
+# Astrometry.net API Key
+astrometry_api_key = "your-astrometry-api-key"
+
+# =============================================================================
+# Optional Variables (defaults shown)
+# =============================================================================
+
+# Region for Cloud Run deployment
+# region = "us-central1"
+
+# Cloud Run service name
+# service_name = "astroia-backend"
+
+# =============================================================================
+# Resource Limits (optional)
+# =============================================================================
+
+# CPU limit (default: 2)
+# cpu_limit = "2"
+
+# Memory limit (default: 2Gi)
+# memory_limit = "2Gi"
+
+# =============================================================================
+# Application Configuration (optional - defaults shown)
+# =============================================================================
+
+# Astrometry plate solving service URL
+# astrometry_api_url = "http://ec2-3-145-73-178.us-east-2.compute.amazonaws.com/solve"
+
+# Timeout for plate solving in seconds
+# plate_solving_timeout = "120"
+
+# Use cache for plate solving
+# plate_solving_use_cache = "false"
+
+# Object detection algorithm
+# object_detector = "contrast_detector"
+
+# Maximum objects to query from SIMBAD
+# max_query_objects = "10"
+
+# SIMBAD search radius in degrees
+# simbad_search_radius = "10"
+
+# Enable verbose logging
+# verbose = "true"

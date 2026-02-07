@@ -1,0 +1,373 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.2",
+  "serial": 8,
+  "lineage": "61fe35d0-28df-57a3-b000-8d924993c31c",
+  "outputs": {
+    "gcs_bucket_mounted": {
+      "value": "astroia-backend-storage",
+      "type": "string"
+    },
+    "service_account": {
+      "value": "astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+      "type": "string"
+    },
+    "service_name": {
+      "value": "astroia-backend",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "google_cloud_run_v2_service",
+      "name": "default",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "status": "tainted",
+          "schema_version": 0,
+          "attributes": {
+            "annotations": {},
+            "binary_authorization": [],
+            "build_config": [],
+            "client": "",
+            "client_version": "",
+            "conditions": [
+              {
+                "execution_reason": "",
+                "last_transition_time": "2026-02-07T16:01:12.783193Z",
+                "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=generico-2021\u0026resource=cloud_run_revision/service_name/astroia-backend/revision_name/astroia-backend-00001-2l7\u0026advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22astroia-backend%22%0Aresource.labels.revision_name%3D%22astroia-backend-00001-2l7%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+                "reason": "",
+                "revision_reason": "HEALTH_CHECK_CONTAINER_ERROR",
+                "severity": "",
+                "state": "CONDITION_FAILED",
+                "type": "RoutesReady"
+              },
+              {
+                "execution_reason": "",
+                "last_transition_time": "2026-02-07T16:01:12.690800Z",
+                "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=generico-2021\u0026resource=cloud_run_revision/service_name/astroia-backend/revision_name/astroia-backend-00001-2l7\u0026advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22astroia-backend%22%0Aresource.labels.revision_name%3D%22astroia-backend-00001-2l7%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+                "reason": "",
+                "revision_reason": "HEALTH_CHECK_CONTAINER_ERROR",
+                "severity": "",
+                "state": "CONDITION_FAILED",
+                "type": "ConfigurationsReady"
+              }
+            ],
+            "create_time": "2026-02-07T16:00:16.284521Z",
+            "creator": "matiapa98@gmail.com",
+            "custom_audiences": [],
+            "default_uri_disabled": false,
+            "delete_time": "",
+            "deletion_protection": true,
+            "description": "",
+            "effective_annotations": {},
+            "effective_labels": {
+              "goog-terraform-provisioned": "true"
+            },
+            "etag": "\"CJDDncwGEKjk1YcB/cHJvamVjdHMvZ2VuZXJpY28tMjAyMS9sb2NhdGlvbnMvdXMtY2VudHJhbDEvc2VydmljZXMvYXN0cm9pYS1iYWNrZW5k\"",
+            "expire_time": "",
+            "generation": "1",
+            "id": "projects/generico-2021/locations/us-central1/services/astroia-backend",
+            "ingress": "INGRESS_TRAFFIC_ALL",
+            "invoker_iam_disabled": false,
+            "labels": {},
+            "last_modifier": "matiapa98@gmail.com",
+            "latest_created_revision": "projects/generico-2021/locations/us-central1/services/astroia-backend/revisions/astroia-backend-00001-2l7",
+            "latest_ready_revision": "",
+            "launch_stage": "GA",
+            "location": "us-central1",
+            "multi_region_settings": [],
+            "name": "astroia-backend",
+            "observed_generation": "1",
+            "project": "generico-2021",
+            "reconciling": false,
+            "scaling": [
+              {
+                "manual_instance_count": 0,
+                "max_instance_count": 3,
+                "min_instance_count": 0,
+                "scaling_mode": ""
+              }
+            ],
+            "template": [
+              {
+                "annotations": {},
+                "containers": [
+                  {
+                    "args": [],
+                    "base_image_uri": "",
+                    "build_info": [],
+                    "command": [],
+                    "depends_on": [],
+                    "env": [
+                      {
+                        "name": "API_HOST",
+                        "value": "0.0.0.0",
+                        "value_source": []
+                      },
+                      {
+                        "name": "API_PORT",
+                        "value": "8080",
+                        "value_source": []
+                      },
+                      {
+                        "name": "ASTROMETRY_API_KEY",
+                        "value": "ghlrfwzadeoxneao",
+                        "value_source": []
+                      },
+                      {
+                        "name": "ASTROMETRY_API_URL",
+                        "value": "http://ec2-3-145-73-178.us-east-2.compute.amazonaws.com/solve",
+                        "value_source": []
+                      },
+                      {
+                        "name": "GOOGLE_API_KEY",
+                        "value": "AIzaSyCuLE01TQOa0M9bDaSdoh8_DijG-ujdenY",
+                        "value_source": []
+                      },
+                      {
+                        "name": "GOOGLE_CSE_ID",
+                        "value": "522ad86df56bf42a5",
+                        "value_source": []
+                      },
+                      {
+                        "name": "MAX_QUERY_OBJECTS",
+                        "value": "10",
+                        "value_source": []
+                      },
+                      {
+                        "name": "OBJECT_DETECTOR",
+                        "value": "contrast_detector",
+                        "value_source": []
+                      },
+                      {
+                        "name": "PLATE_SOLVING_TIMEOUT",
+                        "value": "120",
+                        "value_source": []
+                      },
+                      {
+                        "name": "PLATE_SOLVING_USE_CACHE",
+                        "value": "false",
+                        "value_source": []
+                      },
+                      {
+                        "name": "SIMBAD_SEARCH_RADIUS",
+                        "value": "10",
+                        "value_source": []
+                      },
+                      {
+                        "name": "STORAGE_DIR",
+                        "value": "/mnt/data",
+                        "value_source": []
+                      },
+                      {
+                        "name": "VERBOSE",
+                        "value": "true",
+                        "value_source": []
+                      }
+                    ],
+                    "image": "us-central1-docker.pkg.dev/generico-2021/astroia-repo/astroia-backend:8eb48b8",
+                    "liveness_probe": [],
+                    "name": "",
+                    "ports": [
+                      {
+                        "container_port": 8080,
+                        "name": "http1"
+                      }
+                    ],
+                    "resources": [
+                      {
+                        "cpu_idle": false,
+                        "limits": {
+                          "cpu": "2",
+                          "memory": "2Gi"
+                        },
+                        "startup_cpu_boost": false
+                      }
+                    ],
+                    "startup_probe": [
+                      {
+                        "failure_threshold": 1,
+                        "grpc": [],
+                        "http_get": [],
+                        "initial_delay_seconds": 0,
+                        "period_seconds": 240,
+                        "tcp_socket": [
+                          {
+                            "port": 8080
+                          }
+                        ],
+                        "timeout_seconds": 240
+                      }
+                    ],
+                    "volume_mounts": [
+                      {
+                        "mount_path": "/mnt/data",
+                        "name": "gcs-volume",
+                        "sub_path": ""
+                      }
+                    ],
+                    "working_dir": ""
+                  }
+                ],
+                "encryption_key": "",
+                "execution_environment": "EXECUTION_ENVIRONMENT_GEN2",
+                "gpu_zonal_redundancy_disabled": false,
+                "health_check_disabled": false,
+                "labels": {},
+                "max_instance_request_concurrency": 160,
+                "node_selector": [],
+                "revision": "",
+                "scaling": [],
+                "service_account": "astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+                "session_affinity": false,
+                "timeout": "300s",
+                "volumes": [
+                  {
+                    "cloud_sql_instance": [],
+                    "empty_dir": [],
+                    "gcs": [
+                      {
+                        "bucket": "astroia-backend-storage",
+                        "mount_options": [],
+                        "read_only": false
+                      }
+                    ],
+                    "name": "gcs-volume",
+                    "nfs": [],
+                    "secret": []
+                  }
+                ],
+                "vpc_access": []
+              }
+            ],
+            "terminal_condition": [
+              {
+                "execution_reason": "",
+                "last_transition_time": "2026-02-07T16:01:12.783193Z",
+                "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=generico-2021\u0026resource=cloud_run_revision/service_name/astroia-backend/revision_name/astroia-backend-00001-2l7\u0026advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22astroia-backend%22%0Aresource.labels.revision_name%3D%22astroia-backend-00001-2l7%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+                "reason": "",
+                "revision_reason": "HEALTH_CHECK_CONTAINER_ERROR",
+                "severity": "",
+                "state": "CONDITION_FAILED",
+                "type": "Ready"
+              }
+            ],
+            "terraform_labels": {
+              "goog-terraform-provisioned": "true"
+            },
+            "timeouts": null,
+            "traffic": [
+              {
+                "percent": 100,
+                "revision": "",
+                "tag": "",
+                "type": "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+              }
+            ],
+            "traffic_statuses": [],
+            "uid": "76eeca02-243b-48bf-ad0b-3b8a4702de7e",
+            "update_time": "2026-02-07T16:00:16.284521Z",
+            "uri": "",
+            "urls": [
+              "https://astroia-backend-635528969546.us-central1.run.app"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "template"
+              },
+              {
+                "type": "index",
+                "value": {
+                  "value": 0,
+                  "type": "number"
+                }
+              },
+              {
+                "type": "get_attr",
+                "value": "containers"
+              },
+              {
+                "type": "index",
+                "value": {
+                  "value": 0,
+                  "type": "number"
+                }
+              },
+              {
+                "type": "get_attr",
+                "value": "env"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "google_service_account.cloud_run_sa",
+            "google_storage_bucket_iam_member.bucket_access"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_service_account",
+      "name": "cloud_run_sa",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_id": "astroia-backend-sa",
+            "create_ignore_already_exists": null,
+            "description": "",
+            "disabled": false,
+            "display_name": "Service Account for astroia-backend",
+            "email": "astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+            "id": "projects/generico-2021/serviceAccounts/astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+            "member": "serviceAccount:astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+            "name": "projects/generico-2021/serviceAccounts/astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+            "project": "generico-2021",
+            "timeouts": null,
+            "unique_id": "104407713264010613061"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDB9fQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_storage_bucket_iam_member",
+      "name": "bucket_access",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "b/astroia-backend-storage",
+            "condition": [],
+            "etag": "CAI=",
+            "id": "b/astroia-backend-storage/roles/storage.objectAdmin/serviceAccount:astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+            "member": "serviceAccount:astroia-backend-sa@generico-2021.iam.gserviceaccount.com",
+            "role": "roles/storage.objectAdmin",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "google_service_account.cloud_run_sa"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

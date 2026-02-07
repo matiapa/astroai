@@ -1,0 +1,35 @@
+{
+    "success": true,
+    "plate_solving": {
+        "center_ra_deg": 84.527864,
+        "center_dec_deg": -4.980179,
+        "pixel_scale_arcsec": 5.1269
+    },
+    "narration": {
+        "title": "Una estrella en el cielo",
+        "text": "En esta imagen podemos observar una estrella de tipo M3.2, con una magnitud visual de 16.06 y un índice de color B-V de 0.1. Se encuentra a una distancia de 1455.4 años luz de la Tierra.",
+        "audio_url": "https://example.com/audio.mp3"
+    },
+    "identified_objects": [
+        {
+            "name": "[RHS2000] 1-1048",
+            "type": "Star",
+            "subtype": "Y*O",
+            "magnitude_visual": 16.06,
+            "bv_color_index": 0.1,
+            "spectral_type": "M3.2",
+            "distance_lightyears": 1455.4,
+            "celestial_coords": {
+                "ra_deg": 84.527864,
+                "dec_deg": -4.980179,
+                "radius_arcsec": 78.69
+            },
+            "pixel_coords": {
+                "x": 100,
+                "y": 100,
+                "radius_pixels": 200
+            },
+            "legend": "A red dwarf star with a surface temperature of 3,200 Kelvin and a radius of 0.3 solar radii."
+        }
+    ]
+}

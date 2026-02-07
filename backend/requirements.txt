@@ -12,6 +12,8 @@ python-dotenv>=1.0.0
 
 # Webcam capture & Image Processing
 opencv-python>=4.5.0
+scipy>=1.10.0
+tqdm>=4.65.0
 
 # API Server
 fastapi>=0.100.0
