@@ -285,6 +285,29 @@ flutter build web
 
 # Build APK
 flutter build apk
+
+## Deployment & Production Build
+
+For production deployment, use the provided `Makefile` which handles environment variables using `.env.prod`.
+
+### Prerequisites
+1.  Configure `API_BASE_URL` in `.env.prod`.
+2.  Ensure you have the Firebase CLI installed and logged in.
+
+### Commands
+```bash
+# Build for production (Web)
+make build
+
+# Deploy to Firebase Hosting
+make deploy
+
+# Build and Deploy in one step
+make prod
+
+# Clean build artifacts
+make clean
+```
 ```
 
 ---
