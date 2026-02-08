@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:astro_guide/core/theme/app_theme.dart';
 import 'package:astro_guide/l10n/generated/app_localizations.dart';
@@ -49,8 +50,8 @@ class ResponsiveScaffold extends StatelessWidget {
           onTap: (index) => _onNavigate(context, index),
           items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.camera_alt_outlined),
-              activeIcon: Icon(Icons.camera_alt),
+              icon: FaIcon(FontAwesomeIcons.binoculars, size: 20),
+              activeIcon: FaIcon(FontAwesomeIcons.binoculars, size: 20),
               label: AppLocalizations.of(context)!.navObservatory,
             ),
             BottomNavigationBarItem(
@@ -59,8 +60,8 @@ class ResponsiveScaffold extends StatelessWidget {
               label: AppLocalizations.of(context)!.navLog,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline),
-              activeIcon: Icon(Icons.chat_bubble),
+              icon: Icon(Icons.auto_awesome_outlined),
+              activeIcon: Icon(Icons.auto_awesome),
               label: AppLocalizations.of(context)!.navChat,
             ),
             BottomNavigationBarItem(
@@ -92,8 +93,8 @@ class ResponsiveScaffold extends StatelessWidget {
             ),
             destinations: [
               NavigationRailDestination(
-                icon: Icon(Icons.camera_alt_outlined),
-                selectedIcon: Icon(Icons.camera_alt),
+                icon: FaIcon(FontAwesomeIcons.binoculars, size: 20),
+                selectedIcon: FaIcon(FontAwesomeIcons.binoculars, size: 20),
                 label: Text(AppLocalizations.of(context)!.navObservatory),
               ),
               NavigationRailDestination(
@@ -102,8 +103,8 @@ class ResponsiveScaffold extends StatelessWidget {
                 label: Text(AppLocalizations.of(context)!.navLog),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.chat_bubble_outline),
-                selectedIcon: Icon(Icons.chat_bubble),
+                icon: Icon(Icons.auto_awesome_outlined),
+                selectedIcon: Icon(Icons.auto_awesome),
                 label: Text(AppLocalizations.of(context)!.navChat),
               ),
               NavigationRailDestination(
