@@ -8,6 +8,7 @@ object detection, then combines this data with its knowledge and web searches to
 fascinating narratives about what the user is seeing.
 """
 
+from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.google_search_tool import GoogleSearchTool
 import os
 import sys
@@ -17,6 +18,7 @@ from pathlib import Path
 import google.genai.types as types
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.tool_context import ToolContext
+from google.adk.tools.agent_tool import AgentTool
 
 # Add project root to path so we can import from src
 project_root = Path(__file__).parent.parent.parent
@@ -24,6 +26,8 @@ sys.path.insert(0, str(project_root))
 
 from google.adk.agents import Agent
 from src.tools.capture_sky.tool import SkyCaptureTool
+from agents.observation_planner.agent import root_agent as observation_planner_agent
+
 # from src.tools.search.ddg_tool import web_search
 
 async def capture_sky(tool_context: ToolContext, image_artifact_name: str) -> dict:
@@ -92,6 +96,8 @@ capture_sky_tool = FunctionTool(func=capture_sky)
 # search_tool = FunctionTool(func=web_search)
 search_tool = GoogleSearchTool(bypass_multi_tools_limit=True)
 
+
+
 # Read the only prompt from the markdown file
 import re
 
@@ -108,6 +114,7 @@ root_agent = Agent(
     tools=[
         capture_sky_tool,
         search_tool,
+        AgentTool(agent=observation_planner_agent),
     ],
 )
 
