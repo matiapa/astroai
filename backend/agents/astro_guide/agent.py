@@ -75,7 +75,7 @@ async def capture_sky(tool_context: ToolContext, image_artifact_name: str) -> di
                     sky_result["annotated_image_artifact"] = artifact_name
                 except Exception as e:
                     sky_result["annotated_image_error"] = f"Failed to save annotated image artifact: {str(e)}"
-        
+            
         # Remove logs_dir from result (internal detail)
         if "logs_dir" in sky_result:
             del sky_result["logs_dir"]
@@ -114,9 +114,13 @@ root_agent = Agent(
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
-from a2a.types import AgentCard
+from starlette.applications import Starlette
 
-from google.adk.a2a.executor.a2a_agent_executor import A2aAgentExecutor
+from google.adk.a2a.executor.a2a_agent_executor import A2aAgentExecutor, A2aAgentExecutorConfig
+from google.adk.a2a.converters.request_converter import convert_a2a_request_to_agent_run_request
+from google.adk.agents.run_config import RunConfig, StreamingMode
+from a2a.types import AgentCapabilities
+from google.adk.a2a.utils.agent_card_builder import AgentCardBuilder
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.adk.auth.credential_service.in_memory_credential_service import InMemoryCredentialService
 from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
@@ -125,17 +129,19 @@ from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
 _url = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
 
-_agent_card = AgentCard(
-    name=root_agent.name,
-    url=f"{_url}/a2a/",
-    description=root_agent.description,
-    version="1.0.0",
-    capabilities={},
-    skills=[],
-    defaultInputModes=["text/plain"],
-    defaultOutputModes=["text/plain"],
-    supportsAuthenticatedExtendedCard=False,
-)
+
+def _streaming_aware_request_converter(context, part_converter):
+    """Custom request converter that enables SSE streaming for message/stream requests."""
+    run_request = convert_a2a_request_to_agent_run_request(context, part_converter)
+    if (
+        context.call_context
+        and context.call_context.state.get("method") == "message/stream"
+    ):
+        run_request.run_config = RunConfig(
+            streaming_mode=StreamingMode.SSE,
+            custom_metadata=run_request.run_config.custom_metadata if run_request.run_config else {},
+        )
+    return run_request
 
 
 async def _create_runner() -> Runner:
@@ -150,13 +156,34 @@ async def _create_runner() -> Runner:
 
 
 _task_store = InMemoryTaskStore()
-_agent_executor = A2aAgentExecutor(runner=_create_runner)
+_agent_executor = A2aAgentExecutor(
+    runner=_create_runner,
+    config=A2aAgentExecutorConfig(
+        request_converter=_streaming_aware_request_converter,
+    ),
+)
 _request_handler = DefaultRequestHandler(
     agent_executor=_agent_executor,
     task_store=_task_store,
 )
 
-a2a_app = A2AStarletteApplication(
-    agent_card=_agent_card,
-    http_handler=_request_handler,
-).build()
+# Empty Starlette app — routes are added during startup via setup_a2a()
+a2a_app = Starlette()
+
+
+async def setup_a2a():
+    """Build the auto-generated agent card and register A2A routes.
+
+    Must be called from the parent FastAPI app's startup event, since
+    mounted sub-apps don't get their own startup events triggered.
+    """
+    agent_card = await AgentCardBuilder(
+        agent=root_agent,
+        rpc_url=f"{_url}/a2a/",
+        capabilities=AgentCapabilities(streaming=True),
+    ).build()
+
+    A2AStarletteApplication(
+        agent_card=agent_card,
+        http_handler=_request_handler,
+    ).add_routes_to_app(a2a_app)

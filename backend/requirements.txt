@@ -3,9 +3,10 @@
 # Google Agent Development Kit
 google-adk>=1.0.0
 
-# Astronomical image analysis
+# Astronomical image analysis & observation planning
 astroquery>=0.4.6
 astropy>=5.0
+astroplan>=0.10
 numpy>=1.21.0
 Pillow>=9.0.0
 python-dotenv>=1.0.0
