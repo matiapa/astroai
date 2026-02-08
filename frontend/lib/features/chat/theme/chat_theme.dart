@@ -159,5 +159,29 @@ class ChatTheme {
             ),
           ),
         ),
+        attachFileButtonStyle: ActionButtonStyle(
+          iconColor: AppColors.textSecondary,
+          textStyle: GoogleFonts.inter(
+            color: AppColors.textPrimary, // High contrast white
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        cameraButtonStyle: ActionButtonStyle(
+          iconColor: AppColors.textSecondary,
+          textStyle: GoogleFonts.inter(
+            color: AppColors.textPrimary, // High contrast white
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        galleryButtonStyle: ActionButtonStyle(
+          iconColor: AppColors.textSecondary,
+          textStyle: GoogleFonts.inter(
+            color: AppColors.textPrimary, // High contrast white
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       );
 }

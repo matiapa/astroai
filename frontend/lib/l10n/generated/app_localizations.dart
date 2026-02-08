@@ -589,6 +589,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go back'**
   String get goBack;
+
+  /// Tooltip for the new conversation button in chat
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get chatNewConversation;
+
+  /// Title for the conversation history bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation History'**
+  String get chatHistory;
+
+  /// Empty state text when there are no past conversations
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get chatNoHistory;
+
+  /// Shown while restoring a conversation from the server
+  ///
+  /// In en, this message translates to:
+  /// **'Loading conversation...'**
+  String get chatLoadingHistory;
 }
 
 class _AppLocalizationsDelegate

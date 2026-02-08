@@ -3,16 +3,19 @@
 // Check in to version control
 
 import 'package:hive_ce/hive.dart';
+import 'package:astro_guide/features/chat/models/chat_session.dart';
 import 'package:astro_guide/features/logbook/models/logbook_entry.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
+    registerAdapter(ChatSessionAdapter());
     registerAdapter(LogbookEntryAdapter());
   }
 }
 
 extension IsolatedHiveRegistrar on IsolatedHiveInterface {
   void registerAdapters() {
+    registerAdapter(ChatSessionAdapter());
     registerAdapter(LogbookEntryAdapter());
   }
 }

@@ -186,5 +186,21 @@
     "goBack": "Go back",
     "@goBack": {
         "description": "Generic go back button label"
+    },
+    "chatNewConversation": "New conversation",
+    "@chatNewConversation": {
+        "description": "Tooltip for the new conversation button in chat"
+    },
+    "chatHistory": "Conversation History",
+    "@chatHistory": {
+        "description": "Title for the conversation history bottom sheet"
+    },
+    "chatNoHistory": "No conversations yet",
+    "@chatNoHistory": {
+        "description": "Empty state text when there are no past conversations"
+    },
+    "chatLoadingHistory": "Loading conversation...",
+    "@chatLoadingHistory": {
+        "description": "Shown while restoring a conversation from the server"
     }
 }

@@ -274,4 +274,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goBack => 'Go back';
+
+  @override
+  String get chatNewConversation => 'New conversation';
+
+  @override
+  String get chatHistory => 'Conversation History';
+
+  @override
+  String get chatNoHistory => 'No conversations yet';
+
+  @override
+  String get chatLoadingHistory => 'Loading conversation...';
 }

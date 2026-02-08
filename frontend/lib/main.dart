@@ -9,6 +9,7 @@ import 'core/navigation/app_router.dart';
 import 'features/settings/data/settings_repository.dart';
 import 'features/settings/providers/settings_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'features/chat/providers/chat_session_provider.dart';
 import 'features/logbook/providers/logbook_provider.dart';
 
 void main() async {
@@ -19,6 +20,9 @@ void main() async {
 
   // Initialize logbook service (registers adapter and opens box)
   await logbookServiceInstance.initialize();
+
+  // Initialize chat session service (registers adapter and opens box)
+  await chatSessionServiceInstance.initialize();
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([

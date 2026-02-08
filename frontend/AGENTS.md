@@ -259,6 +259,12 @@ The frontend navigates to results screen on `narration_complete`, showing an aud
 ### A2A Chat
 Atlas chat is implemented with Flutter AI Toolkit's `LlmChatView`, backed by an A2A JSON-RPC provider. The agent URL is configured via `A2A_AGENT_URL` (set with `--dart-define=A2A_AGENT_URL=http://localhost:8000/a2a`).
 
+**Session Management:**
+- **contextId**: Groups related tasks within a conversation. Sent with every message so the server keeps tasks associated.
+- **taskId**: Identifies individual task sessions. Tasks are marked as "finished" when they complete, after which new messages create a new task within the same context.
+- **taskIds**: The `ChatSession` model accumulates every task ID created during a conversation. This list (stored oldest-first) allows reconstructing the full visual history across task boundaries.
+- **History Restoration**: When reopening a historical conversation, the app calls `tasks/get` for each stored task ID and merges their message histories in order. New messages are sent with only the `contextId` (not `taskId`) so the server creates a fresh task rather than rejecting a finished one.
+
 ---
 
 ## File Naming Conventions

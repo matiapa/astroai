@@ -71,7 +71,9 @@ IdentifiedObject _$IdentifiedObjectFromJson(Map<String, dynamic> json) =>
       spectralType: json['spectral_type'] as String?,
       morphologicalType: json['morphological_type'] as String?,
       distanceLightyears: (json['distance_lightyears'] as num?)?.toDouble(),
-      alternativeNames: (json['alternative_names'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      alternativeNames: (json['alternative_names'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
       celestialCoords: CelestialCoords.fromJson(
         json['celestial_coords'] as Map<String, dynamic>,
       ),

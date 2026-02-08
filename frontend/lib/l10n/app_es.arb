@@ -84,5 +84,9 @@
     "chatSuggestion2": "Cuéntame sobre la Nebulosa de Orión",
     "chatSuggestion3": "¿Cómo puedo fotografiar la Vía Láctea?",
     "chatResultsWelcome": "Tengo contexto sobre tu análisis del cielo. ¡Pregúntame lo que quieras sobre los objetos identificados en tu imagen!",
-    "goBack": "Volver"
+    "goBack": "Volver",
+    "chatNewConversation": "Nueva conversación",
+    "chatHistory": "Historial de conversaciones",
+    "chatNoHistory": "Aún no hay conversaciones",
+    "chatLoadingHistory": "Cargando conversación..."
 }
