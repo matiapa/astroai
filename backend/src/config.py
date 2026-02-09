@@ -7,6 +7,7 @@ import dotenv
 class AppConfig:
     """Configuration for the image analysis tool."""
     astrometry_api_key: str
+    gemini_api_key: Optional[str]
     plate_solving_timeout: int
     plate_solving_use_cache: bool
     webcam_index: int
@@ -17,17 +18,22 @@ class AppConfig:
     simbad_search_radius_arcsec:int
     astrometry_api_url: str
     storage_dir: str
-    
+    plate_solving_method: str
+        
 def get_config_from_env() -> AppConfig:
     dotenv.load_dotenv()
 
     astrometry_api_key = os.environ.get("ASTROMETRY_API_KEY")
-    if astrometry_api_key is None:
-        raise ValueError("ASTROMETRY_API_KEY environment variable is not set")
+
+    plate_solving_method = os.environ.get("PLATE_SOLVING_METHOD", "custom_remote")
+
+    if plate_solving_method == "astrometry_net" and astrometry_api_key is None:
+         raise ValueError("ASTROMETRY_API_KEY environment variable is not set, but is required for 'astrometry_net' plate solving.")
 
     """Get configuration from environment variables."""
     return AppConfig(
-        astrometry_api_key=astrometry_api_key,
+        astrometry_api_key=astrometry_api_key or "",
+        gemini_api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"),
         plate_solving_timeout=int(os.environ.get("PLATE_SOLVING_TIMEOUT", "30")),
         plate_solving_use_cache=os.environ.get("PLATE_SOLVING_USE_CACHE", "False") == "true",
         webcam_index=int(os.environ.get("WEBCAM_INDEX", "0")),
@@ -38,4 +44,5 @@ def get_config_from_env() -> AppConfig:
         simbad_search_radius_arcsec=int(os.environ.get("SIMBAD_SEARCH_RADIUS", "10")),
         astrometry_api_url=os.environ.get("ASTROMETRY_API_URL", "http://ec2-3-145-73-178.us-east-2.compute.amazonaws.com/solve"),
         storage_dir=os.environ.get("STORAGE_DIR", "/mnt/data"),
+        plate_solving_method=plate_solving_method,
     )

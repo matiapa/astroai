@@ -136,6 +136,10 @@ resource "google_cloud_run_v2_service" "default" {
         name  = "PLATE_SOLVING_USE_CACHE"
         value = var.plate_solving_use_cache
       }
+      env {
+        name  = "PLATE_SOLVING_METHOD"
+        value = var.plate_solving_method
+      }
 
       # Detection Configuration
       env {

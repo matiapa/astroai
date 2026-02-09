@@ -43,6 +43,59 @@ OTYPE_DESCRIPTIONS = {
 }
 
 
+def query_simbad_by_id(name: str, config: AppConfig) -> Optional[CelestialObject]:
+    """
+    Query SIMBAD for an object by its identifier.
+    
+    Args:
+        name: Object name (e.g., "M 42", "Betelgeuse")
+        config: Application configuration
+    
+    Returns:
+        CelestialObject if found, None otherwise.
+    """
+    try:
+        # Configure SIMBAD query
+        custom_simbad = Simbad()
+        custom_simbad.add_votable_fields(
+            'otype',       # Object type code
+            'V',           # Visual magnitude
+            'B',           # Blue magnitude
+            'sp_type',     # Spectral type
+            'morph_type',  # Morphological type
+            'plx_value',   # Parallax
+            'galdim_majaxis', # Major axis angular size (renamed from dim_majaxis)
+            'ids',         # All identifiers
+            'ra',          # RA
+            'dec'          # DEC
+        )
+        
+        # Query by object name
+        result = cast(Optional[Table], custom_simbad.query_object(name))
+        
+        if result is None or len(result) == 0:
+            # Fallback: Try with minimal fields if the full query failed
+            # Some objects (like M42) might not have all the requested fields
+            logger.info(f"  Initial SIMBAD query for '{name}' failed. Retrying with minimal fields...")
+            minimal_simbad = Simbad()
+            minimal_simbad.add_votable_fields('otype', 'ra', 'dec', 'ids')
+            result = cast(Optional[Table], minimal_simbad.query_object(name))
+        
+        if result is None or len(result) == 0:
+            return None
+            
+        # Parse the first row
+        row = result[0]
+        
+        # We don't have a query position/radius, so we use 0.0 placeholders.
+        # The parser will use the object's actual coordinates if available.
+        return _parse_simbad_row(row, result.colnames, 0.0, 0.0, 0.0)
+        
+    except Exception as e:
+        logger.error(f"SIMBAD query by ID failed for '{name}': {e}")
+        return None
+
+
 def _query_simbad_at_position(ra: float, dec: float, radius_arcsec: float, config: AppConfig, query_id: int) -> Optional[CelestialObject]:
     """
     Query SIMBAD for the closest object at a specific position.
@@ -68,8 +121,7 @@ def _query_simbad_at_position(ra: float, dec: float, radius_arcsec: float, confi
             'sp_type',     # Spectral type (e.g., 'G2V')
             'morph_type',  # Morphological type (for galaxies)
             'plx_value',   # Parallax (for distance calculation)
-            'plx_value',   # Parallax (for distance calculation)
-            'dim_majaxis', # Major axis angular size (arcminutes)
+            'galdim_majaxis', # Major axis angular size (arcminutes, renamed from dim_majaxis)
             'ids'          # All identifiers (to find common name)
         )
         custom_simbad.ROW_LIMIT = 5  # We only need the closest matches
@@ -218,12 +270,15 @@ def _parse_simbad_row(row, colnames: List[str], query_ra: float, query_dec: floa
         alt_names = [n.strip() for n in str(row['ids']).split('|') 
                      if n.strip() and n.strip() != name][:10]
     
-    # Get object angular size (dim_majaxis is in arcminutes, convert to arcseconds)
+    # Get object angular size (galdim_majaxis is in arcminutes, convert to arcseconds)
     object_radius_arcsec = None
-    if 'dim_majaxis' in colnames and not np.ma.is_masked(row['dim_majaxis']):
+    # Support both old and new field names
+    majaxis_field = 'galdim_majaxis' if 'galdim_majaxis' in colnames else 'dim_majaxis'
+    
+    if majaxis_field in colnames and not np.ma.is_masked(row[majaxis_field]):
         try:
-            # dim_majaxis gives diameter in arcminutes, so radius = (diameter / 2) * 60 arcsec
-            diameter_arcmin = float(row['dim_majaxis'])
+            # diameter in arcminutes, so radius = (diameter / 2) * 60 arcsec
+            diameter_arcmin = float(row[majaxis_field])
             object_radius_arcsec = (diameter_arcmin / 2.0) * 60.0
         except (ValueError, TypeError):
             pass

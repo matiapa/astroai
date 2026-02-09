@@ -19,6 +19,7 @@ import tempfile
 import json
 import pickle
 import cv2
+import hashlib
 from typing import List, Optional, Tuple
 
 import requests
@@ -31,11 +32,18 @@ from src.utils import ra_to_hms, dec_to_dms
 from src.tools.capture_sky.types import DetectedObject, CelestialObject, CelestialPosition
 from src.tools.capture_sky.object_detector.contrast_detector import ContrastObjectDetector
 from src.tools.capture_sky.simbad_query import query_simbad_batch
+from src.tools.capture_sky.plate_solver.custom_remote_solver import CustomRemotePlateSolver
+from src.tools.capture_sky.plate_solver.astrometry_net_solver import AstrometryNetPlateSolver
 
 
 class SkyCaptureTool:
     def __init__(self):
         self.config = get_config_from_env()
+
+        if self.config.plate_solving_method == "astrometry_net":
+            self.plate_solver = AstrometryNetPlateSolver(self.config)
+        else:
+            self.plate_solver = CustomRemotePlateSolver(self.config)
 
     def log(self, msg: str):
         if self.config.verbose:
@@ -102,58 +110,25 @@ class SkyCaptureTool:
                 self.log(f"Failed to load WCS from cache: {e}, proceeding with plate solving")
         
         # Perform plate solving
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-            image.save(tmp, format='PNG')
-            tmp_path = tmp.name
-        
         try:
-            self.log(f"Sending image to Astrometry server...")
-            
-            # Use self-hosted astrometry server
-            url = self.config.astrometry_api_url
-            
-            with open(tmp_path, 'rb') as f:
-                response = requests.post(url, files={'image': f})
+            self.log(f"Solving plate using {self.plate_solver.name}...")
+            wcs_header = self.plate_solver.solve(image)
                 
-            if response.status_code != 200:
-                raise RuntimeError(f"Astrometry server returned status {response.status_code}: {response.text}")
-            
+            # Save to cache
             try:
-                result = response.json()
-            except json.JSONDecodeError:
-                raise RuntimeError(f"Invalid JSON response from server: {response.text}")
+                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                with open(cache_path, "wb") as f:
+                    pickle.dump(wcs_header, f)
+                self.log(f"Saved WCS to cache: {cache_path}")
+            except Exception as e:
+                self.log(f"Failed to save WCS to cache: {e}")
             
-            if result.get("status") == "success":
-                wcs_content = result.get("wcs")
-                if not wcs_content:
-                    raise RuntimeError("Server returned success but no WCS content")
-                
-                # Parse WCS header from string
-                wcs_header = Header.fromstring(wcs_content)
-                
-                # Save to cache
-                try:
-                    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-                    with open(cache_path, "wb") as f:
-                        pickle.dump(wcs_header, f)
-                    self.log(f"Saved WCS to cache: {cache_path}")
-                except Exception as e:
-                    self.log(f"Failed to save WCS to cache: {e}")
-                
-                return wcs_header
-            else:
-                msg = result.get("message", "Unknown error")
-                raise RuntimeError(f"Plate solving failed: {msg}")
-                
+            return wcs_header
+
         except RuntimeError:
             raise  # Re-raise our own exceptions
         except Exception as e:
             raise RuntimeError(f"Error during plate solving: {e}") from e
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
 
 
     def _get_pixel_scale_arcsec(self, wcs_header) -> Optional[float]:
@@ -175,15 +150,7 @@ class SkyCaptureTool:
         wcs = WCS(wcs_header)
         pixel_scale = self._get_pixel_scale_arcsec(wcs_header) or 1.0
         
-        # Step 1: Detect objects in the image
-        
-        max_query_objects = self.config.max_query_objects
-        if len(detected_objects) > max_query_objects:
-            self.log(f"  Limiting to first {max_query_objects} detections")
-            detected_objects.sort(key=lambda obj: obj.brightness, reverse=True)
-            detected_objects = detected_objects[:max_query_objects]
-        
-        # Step 2: Convert to celestial coordinates
+        # Step 1: Convert to celestial coordinates
 
         self.log(f"Converting {len(detected_objects)} positions to celestial coordinates...")
         celestial_positions = []
@@ -285,16 +252,6 @@ class SkyCaptureTool:
             except Exception as e:
                 raise RuntimeError(f"Failed to annotate object '{identified_object.name}' at ({detected_object.position.pixel_x}, {detected_object.position.pixel_y}): {e}") from e
         
-        # Add legend
-        legend_y = 10
-        draw.rectangle([5, 5, 200, 115], fill=(0, 0, 0, 200), outline=(255, 255, 255))
-        draw.text((10, legend_y), "Legend (v2 - Detection):", fill=(255, 255, 255), font=font)
-        legend_y += 18
-        for catalog, color in colors.items():
-            if catalog not in ['default', 'unidentified']:
-                draw.text((10, legend_y), f"● {catalog}", fill=color, font=font_small)
-                legend_y += 15
-        
         self.log(f"Annotated {len(celestial_objects)} identified objects")
         return img
 
@@ -355,6 +312,36 @@ class SkyCaptureTool:
             image = PILImage.open(io.BytesIO(image_data))
         except Exception as e:
             raise RuntimeError(f"Failed to decode base64 image: {e}")
+            
+        # Check cache if in test mode
+        if self.config.test_mode:
+            self.log("> Test mode enabled through config. Checking cache...")
+            md5_hash = hashlib.md5(image_data).hexdigest()
+            self.log(f"  Image MD5: {md5_hash}")
+            
+            cache_path = os.path.join(os.path.dirname(__file__), "analysis_cache.json")
+            if os.path.exists(cache_path):
+                try:
+                    with open(cache_path, "r") as f:
+                        cache = json.load(f)
+                    
+                    if md5_hash in cache:
+                        self.log("  Cache hit! Returning cached results.")
+                        cached_result = cache[md5_hash]
+                        
+                        # Return in expected format
+                        return {
+                            "success": True,
+                            "plate_solving": cached_result.get("plate_solving", {}),
+                            "identified_objects": cached_result.get("identified_objects", []),
+                            "logs_dir": logs_dir
+                        }
+                    else:
+                        self.log("  Cache miss. Proceeding with analysis.")
+                except Exception as e:
+                    self.log(f"  Error reading cache file: {e}")
+            else:
+                self.log(f"  Cache file not found at {cache_path}")
         
         captured_image = image.copy()
         captured_debug_path = os.path.join(logs_dir, "captured.png")
@@ -386,6 +373,12 @@ class SkyCaptureTool:
 
         detected_objects = object_detector.detect(image)
         self.log(f"  Found {len(detected_objects)} objects in image using {self.config.object_detector}")
+
+        # Always work on the brightest objects first (top N)
+        max_query_objects = self.config.max_query_objects
+        if len(detected_objects) > max_query_objects:
+            detected_objects = sorted(detected_objects, key=lambda obj: obj.brightness, reverse=True)[:max_query_objects]
+            self.log(f"  Limiting to top {max_query_objects} brightest detections")
 
         # Step 4: Identify objects
 

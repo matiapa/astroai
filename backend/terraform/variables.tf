@@ -118,6 +118,13 @@ variable "verbose" {
   default     = "true"
 }
 
+variable "plate_solving_method" {
+  description = "Plate solving method to use (astrometry_net or custom_remote)"
+  type        = string
+  default     = "custom_remote"
+}
+
+
 variable "public_api_url" {
   description = "Public-facing base URL of the API (used for A2A agent card, etc.)"
   type        = string

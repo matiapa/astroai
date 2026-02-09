@@ -7,10 +7,14 @@ import os
 import uuid
 import base64
 import json
+import io
+from PIL import Image
 
 from fastapi import UploadFile
 
 from src.tools.capture_sky.tool import SkyCaptureTool
+from src.tools.capture_sky.gemini_identifier import GeminiStructureIdentifier
+from src.tools.capture_sky.simbad_query import query_simbad_by_id
 from src.services.narration_generator import NarrationGenerator
 from src.services.tts_service import TTSService
 from src.config import get_config_from_env
@@ -68,6 +72,76 @@ async def analyze_image_stream(
         plate_solving = analysis_result.get("plate_solving", {})
         identified_objects = analysis_result.get("identified_objects", [])
         
+        # Step 1.5: Identify main structure with Gemini
+        print("> Step 1.5: Identifying main structure with Gemini...")
+        try:
+            gemini_identifier = GeminiStructureIdentifier(get_config_from_env())
+            # We need a PIL image for Gemini
+            pil_image = Image.open(io.BytesIO(image_bytes))
+            
+            main_structure = await asyncio.to_thread(
+                gemini_identifier.identify_main_structure,
+                pil_image,
+                identified_objects,
+                plate_solving
+            )
+            
+            if main_structure:
+                main_name = main_structure.get("name")
+                print(f"  Gemini identified main structure: {main_name}")
+                
+                # Query SIMBAD for details
+                config = get_config_from_env()
+                simbad_obj = await asyncio.to_thread(query_simbad_by_id, main_name, config)
+                
+                if simbad_obj:
+                     # Calculate radius if missing in SIMBAD but present in Gemini
+                     radius_arcsec = simbad_obj.position.radius_arcsec
+                     pixel_coords = main_structure.get("pixel_coords", {})
+                     
+                     if (not radius_arcsec or radius_arcsec == 0) and "radius_pixels" in pixel_coords:
+                         if plate_solving.get("pixel_scale_arcsec"):
+                             radius_arcsec = pixel_coords["radius_pixels"] * plate_solving["pixel_scale_arcsec"]
+                    
+                     structure_dict = {
+                        "name": simbad_obj.name,
+                        "type": simbad_obj.catalog,
+                        "subtype": simbad_obj.object_type_description,
+                        "celestial_coords": {
+                            "ra_deg": round(simbad_obj.position.ra, 6),
+                            "dec_deg": round(simbad_obj.position.dec, 6),
+                            "radius_arcsec": round(radius_arcsec, 2),
+                        },
+                        "pixel_coords": pixel_coords,
+                        "confidence": main_structure.get("confidence", 1.0)
+                     }
+                     
+                     # Add optional fields
+                     if simbad_obj.alternative_names:
+                         structure_dict["alternative_names"] = simbad_obj.alternative_names
+                     if simbad_obj.magnitude_visual:
+                         structure_dict["magnitude_visual"] = round(simbad_obj.magnitude_visual, 2)
+                     if simbad_obj.distance_lightyears:
+                         structure_dict["distance_lightyears"] = simbad_obj.distance_lightyears
+                     if simbad_obj.bv_color_index:
+                         structure_dict["bv_color_index"] = round(simbad_obj.bv_color_index, 2)
+                     if simbad_obj.spectral_type:
+                         structure_dict["spectral_type"] = simbad_obj.spectral_type
+                     if simbad_obj.morphological_type:
+                         structure_dict["morphological_type"] = simbad_obj.morphological_type
+
+                     # Insert at the beginning!
+                     identified_objects.insert(0, structure_dict)
+                else:
+                    print(f"  Could not find '{main_name}' in SIMBAD.")
+            else:
+                print("  Gemini did not identify a specific main structure.")
+                
+        except Exception as e:
+            print(f"  Error in Gemini step: {e}")
+            import traceback
+            traceback.print_exc()
+
         # Yield analysis results
         yield {
             "event": "analysis_complete",

@@ -76,3 +76,12 @@ astrometry_api_key = "your-astrometry-api-key"
 
 # Enable verbose logging
 # verbose = "true"
+
+# Plate solving method (astrometry_net or custom_remote)
+# plate_solving_method = "custom_remote"
+
+# Enable test mode to use local cache
+# test_mode = "true"
+
+# Logs directory
+# logs_dir = "logs"

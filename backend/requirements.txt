@@ -1,7 +1,7 @@
-# AstroGuide Agent Dependencies
+# AstroAI Agent Dependencies
 
-# Google Agent Development Kit
-google-adk>=1.0.0
+# Google Agent Development Kit (include A2A extras)
+google-adk[a2a]>=1.0.0
 
 # Astronomical image analysis & observation planning
 astroquery>=0.4.6
@@ -18,6 +18,8 @@ tqdm>=4.65.0
 
 # API Server
 fastapi>=0.100.0
+starlette
+pydantic
 uvicorn>=0.22.0
 sse-starlette>=1.6.0
 flask>=2.0.0  # For astrometry_server
@@ -25,6 +27,7 @@ flask>=2.0.0  # For astrometry_server
 # Google Services
 google-genai>=1.0.0
 google-api-python-client>=2.0.0
+a2a
 
 # Web Search Tools
 duckduckgo-search>=3.8.0

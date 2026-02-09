@@ -24,6 +24,7 @@ class ObservatoryScreen extends ConsumerStatefulWidget {
 }
 
 class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
+
   final ImagePicker _picker = ImagePicker();
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
@@ -294,7 +295,6 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
               imageName: _selectedImageName,
               onClear: _clearImage,
             )
-          // Live Camera Preview
           else if (_isCameraInitialized && _cameraController != null)
             Center(
               child: CameraPreview(
@@ -323,8 +323,8 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
                   : _captureFromCamera,
               onCatalogPressed: _showCatalog,
               // Pass Camera Controls
-              showCameraControls:
-                  _selectedImageBytes == null && _isCameraInitialized,
+              showCameraControls: _selectedImageBytes == null &&
+                  _isCameraInitialized,
               currentZoom: _currentZoom,
               minZoom: _minZoom,
               maxZoom: _maxZoom,
