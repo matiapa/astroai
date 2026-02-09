@@ -58,12 +58,19 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
     Iterable<ChatMessage>? history,
     String? taskId,
     String? contextId,
-  }) : _agentUrl = agentUrl.replaceAll(RegExp(r'/$'), ''),
+  }) : _agentUrl = _normalizeAgentUrl(agentUrl),
        _dio = Dio(),
        _initialContext = initialContext,
        _history = history?.toList() ?? [],
        _taskId = taskId,
        _contextId = contextId;
+
+  static String _normalizeAgentUrl(String url) {
+    // Ensure we keep a single trailing slash to avoid 307 redirects
+    // (e.g. ngrok/Starlette redirect /a2a -> /a2a/).
+    final trimmed = url.replaceAll(RegExp(r'/+$'), '');
+    return '$trimmed/';
+  }
 
   /// The current A2A task ID, or null if no message has been sent yet.
   String? get taskId => _taskId;
@@ -197,6 +204,9 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
           contentType: 'application/json',
           responseType: ResponseType.stream,
           headers: {'Accept': 'text/event-stream'},
+          followRedirects: true,
+          maxRedirects: 5,
+          validateStatus: (status) => status != null && status < 400,
         ),
       );
 

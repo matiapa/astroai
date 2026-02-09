@@ -1,6 +1,6 @@
 {
-    "name": "astro_guide",
-    "short_name": "astro_guide",
+    "name": "AstroAI",
+    "short_name": "AstroAI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

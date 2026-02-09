@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,6 +11,7 @@ import 'package:astro_guide/features/logbook/models/logbook_entry.dart';
 import 'package:astro_guide/features/logbook/providers/logbook_provider.dart';
 import 'package:astro_guide/features/results/models/analysis_result.dart';
 import 'package:astro_guide/features/results/services/analysis_service.dart';
+import 'package:astro_guide/features/settings/providers/settings_provider.dart';
 
 part 'analysis_provider.g.dart';
 
@@ -80,6 +83,10 @@ class AnalysisController extends _$AnalysisController {
     state = const AsyncValue.loading();
     try {
       final service = ref.read(analysisServiceProvider);
+      final settings = ref.read(settingsProvider);
+      final languageCode =
+          settings.locale ??
+          PlatformDispatcher.instance.locale.languageCode;
 
       // Generate new UID for this analysis
       final analysisUid = _uuid.v4();
@@ -104,10 +111,11 @@ class AnalysisController extends _$AnalysisController {
       );
 
       final stream = input.file != null
-          ? service.analyzeImageStream(input.file!)
+          ? service.analyzeImageStream(input.file!, languageCode)
           : service.analyzeImageBytesStream(
               input.bytes!,
               input.filename ?? 'upload.jpg',
+              languageCode,
             );
 
       await for (final event in stream) {

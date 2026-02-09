@@ -20,10 +20,13 @@ class AnalysisService {
       _dio = dio ?? Dio();
 
   /// Analyzes a sky image returning a stream of progress and final result.
-  Stream<dynamic> analyzeImageStream(XFile imageFile) async* {
+  Stream<dynamic> analyzeImageStream(
+    XFile imageFile,
+    String languageCode,
+  ) async* {
     try {
       final bytes = await imageFile.readAsBytes();
-      yield* analyzeImageBytesStream(bytes, imageFile.name);
+      yield* analyzeImageBytesStream(bytes, imageFile.name, languageCode);
     } catch (e) {
       throw Exception('Failed to read image file: $e');
     }
@@ -37,6 +40,7 @@ class AnalysisService {
   Stream<dynamic> analyzeImageBytesStream(
     List<int> bytes,
     String filename,
+    String languageCode,
   ) async* {
     // Check for mock data configuration
     if (AppConfig.useMockData) {
@@ -46,7 +50,12 @@ class AnalysisService {
 
     // Use web-specific SSE streaming on web platform for proper real-time updates
     if (kIsWeb) {
-      yield* analyzeImageStreamWeb('$_baseUrl/analyze', bytes, filename);
+      yield* analyzeImageStreamWeb(
+        '$_baseUrl/analyze',
+        bytes,
+        filename,
+        languageCode,
+      );
       return;
     }
 
@@ -54,6 +63,7 @@ class AnalysisService {
     try {
       final formData = FormData.fromMap({
         'image': MultipartFile.fromBytes(bytes, filename: filename),
+        'language': languageCode,
       });
 
       final response = await _dio.post(

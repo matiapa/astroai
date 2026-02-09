@@ -11,12 +11,14 @@ Stream<dynamic> analyzeImageStreamWeb(
   String url,
   List<int> bytes,
   String filename,
+  String languageCode,
 ) {
   final controller = StreamController<dynamic>();
 
   final formData = html.FormData();
   final blob = html.Blob([Uint8List.fromList(bytes)]);
   formData.appendBlob('image', blob, filename);
+  formData.append('language', languageCode);
 
   final xhr = html.HttpRequest();
   xhr.open('POST', url);
