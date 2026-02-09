@@ -36,8 +36,19 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Check if analysis is already done when first building
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final currentState = ref.read(analysisControllerProvider).valueOrNull;
+      if (currentState?.result?.narration != null &&
+          currentState?.uid != null) {
+        context.pushReplacement('/results/${currentState!.uid}');
+      }
+    });
+
     // Listen for narration completion to navigate away (don't wait for audio)
     ref.listen(analysisControllerProvider, (previous, next) {
+      if (!mounted) return;
       next.when(
         data: (state) {
           // Navigate when narration is available (not waiting for audio)
@@ -55,7 +66,9 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
               backgroundColor: AppColors.error,
             ),
           );
-          context.pop(); // Go back to observatory
+          if (context.canPop()) {
+            context.pop(); // Go back to observatory
+          }
         },
         loading: () {}, // Stay here
       );
@@ -176,14 +189,14 @@ class _OrbitPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
-      ..color = AppColors.cyanAccent.withOpacity(0.3);
+      ..color = AppColors.cyanAccent.withValues(alpha: 0.3);
 
     // Draw orbits
     canvas.drawCircle(center, 40, paint);
     canvas.drawCircle(
       center,
       70,
-      paint..color = AppColors.violetAccent.withOpacity(0.2),
+      paint..color = AppColors.violetAccent.withValues(alpha: 0.2),
     );
 
     // Draw moving planet 1

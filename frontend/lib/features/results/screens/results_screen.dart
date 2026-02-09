@@ -102,10 +102,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: content,
-    );
+    return Scaffold(backgroundColor: AppColors.background, body: content);
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -313,7 +310,6 @@ class _HeroImageSection extends StatelessWidget {
     );
   }
 }
-
 
 class _Hotspot extends StatefulWidget {
   final IdentifiedObject object;

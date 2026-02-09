@@ -170,14 +170,11 @@ class _MainChatScreenState extends State<MainChatScreen> {
                     ),
                     content: Text(
                       l10n.deleteChatMessage,
-                      style: AppTextStyles.body(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTextStyles.body(color: AppColors.textSecondary),
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
                         child: Text(
                           l10n.cancelButton,
                           style: AppTextStyles.body(
@@ -186,13 +183,10 @@ class _MainChatScreenState extends State<MainChatScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
                         child: Text(
                           l10n.deleteButton,
-                          style: AppTextStyles.body(
-                            color: AppColors.error,
-                          ),
+                          style: AppTextStyles.body(color: AppColors.error),
                         ),
                       ),
                     ],

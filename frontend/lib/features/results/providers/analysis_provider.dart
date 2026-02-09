@@ -85,8 +85,7 @@ class AnalysisController extends _$AnalysisController {
       final service = ref.read(analysisServiceProvider);
       final settings = ref.read(settingsProvider);
       final languageCode =
-          settings.locale ??
-          PlatformDispatcher.instance.locale.languageCode;
+          settings.locale ?? PlatformDispatcher.instance.locale.languageCode;
 
       // Generate new UID for this analysis
       final analysisUid = _uuid.v4();

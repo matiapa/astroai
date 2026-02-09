@@ -1,7 +1,7 @@
 name: astro_guide
 description: "AstroGuide - AI-powered astronomy assistant for nighttime use"
 publish_to: "none"
-version: 0.1.0+2
+version: 0.1.0+3
 
 environment:
   sdk: ^3.10.8

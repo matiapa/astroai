@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -7,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:astro_guide/core/theme/app_theme.dart';
 import 'package:astro_guide/features/results/providers/analysis_provider.dart';
-import 'package:astro_guide/features/observatory/screens/analysis_loading_screen.dart';
 import 'package:astro_guide/l10n/generated/app_localizations.dart';
 
 /// Observatory Screen - The main camera/capture screen.
@@ -24,7 +24,6 @@ class ObservatoryScreen extends ConsumerStatefulWidget {
 }
 
 class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
-
   final ImagePicker _picker = ImagePicker();
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
@@ -244,9 +243,7 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
         );
 
     // Navigate to loading screen immediately
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const AnalysisLoadingScreen()),
-    );
+    context.pushNamed('analysis_loading');
   }
 
   void _clearImage() {
@@ -323,8 +320,8 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
                   : _captureFromCamera,
               onCatalogPressed: _showCatalog,
               // Pass Camera Controls
-              showCameraControls: _selectedImageBytes == null &&
-                  _isCameraInitialized,
+              showCameraControls:
+                  _selectedImageBytes == null && _isCameraInitialized,
               currentZoom: _currentZoom,
               minZoom: _minZoom,
               maxZoom: _maxZoom,

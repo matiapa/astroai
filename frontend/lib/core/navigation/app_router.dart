@@ -4,6 +4,7 @@ import 'package:astro_guide/features/observatory/screens/observatory_screen.dart
 import 'package:astro_guide/features/logbook/screens/logbook_screen.dart';
 import 'package:astro_guide/features/settings/screens/settings_screen.dart';
 import 'package:astro_guide/features/results/screens/results_screen.dart';
+import 'package:astro_guide/features/observatory/screens/analysis_loading_screen.dart';
 import 'package:astro_guide/features/chat/screens/main_chat_screen.dart';
 import 'package:astro_guide/features/chat/screens/results_chat_screen.dart';
 import 'responsive_scaffold.dart';
@@ -57,6 +58,12 @@ final GoRouter appRouter = GoRouter(
             final id = state.pathParameters['id']!;
             return NoTransitionPage(child: ResultsScreen(analysisId: id));
           },
+        ),
+        GoRoute(
+          path: '/analyze/loading',
+          name: 'analysis_loading',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: AnalysisLoadingScreen()),
         ),
         GoRoute(
           path: '/chat/:id',
