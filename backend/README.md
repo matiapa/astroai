@@ -1,159 +1,208 @@
-# 🔭 AstroGuide - Tu Guía Turístico del Cosmos
+# AstroAI Backend
 
-AstroGuide es un agente de IA que actúa como un astrónomo experto, brindando "información turística" fascinante sobre lo que estás viendo a través de tu telescopio.
+AstroAI is an AI-powered backend that analyzes astronomical images, identifies celestial objects, and generates narrated explanations with optional audio. It exposes a FastAPI service, includes two Google ADK agents (AstroAI and Observation Planner), and ships Docker/Terraform assets for deployment.
 
-## ✨ Características
+**What it does**
+- Plate-solves telescope images to recover sky coordinates
+- Detects point sources and queries SIMBAD for object identification
+- Uses Gemini to generate structured narration and TTS audio
+- Streams progress and results over Server-Sent Events (SSE)
+- Exposes an A2A agent interface at `/a2a`
 
-- **Análisis de Imágenes**: Identifica automáticamente estrellas, nebulosas, galaxias y otros objetos celestes en tus fotos de telescopio
-- **Narrativas Cautivadoras**: Transforma datos técnicos en historias fascinantes llenas de mitología, historia y curiosidades
-- **Búsqueda Inteligente**: Complementa la información con búsquedas web para datos actualizados y curiosidades adicionales
-- **Imágenes Anotadas**: Genera versiones anotadas de tus fotos con los objetos identificados y marcados
+**Primary components**
+- API server: `src/api/server.py`
+- AstroAI agent: `agents/astro_guide/agent.py`
+- Observation planner agent: `agents/observation_planner/agent.py`
+- Image analysis pipeline: `src/tools/capture_sky/`
+- OpenAPI spec: `docs/openapi.yaml`
 
-## 🚀 Instalación
+## Architecture overview
 
-### 1. Crear entorno virtual (recomendado)
+High-level flow for `/analyze`:
+1. Plate solving via `custom_remote` or `astrometry_net`
+2. Object detection in the image
+3. SIMBAD lookups for identified objects
+4. Gemini narration generation
+5. Gemini TTS audio generation
 
+Key services and tools:
+- `SkyCaptureTool` handles plate solving, detection, SIMBAD querying, and image annotation
+- `NarrationGenerator` produces JSON narration using Gemini
+- `TTSService` generates WAV audio with Gemini TTS
+- Observation planning tools provide sky conditions, catalog search, and visibility windows
+
+## Requirements
+
+- Python 3.10+ (Docker image uses 3.10)
+- OS packages for OpenCV (installed in the Docker image)
+- Google API key for Gemini (`GOOGLE_API_KEY`)
+- Optional: Astrometry.net API key if `PLATE_SOLVING_METHOD=astrometry_net`
+
+## Quickstart (local)
+
+1. Create and activate a virtual environment.
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # En macOS/Linux
-# o
-.venv\Scripts\activate  # En Windows
+source .venv/bin/activate
 ```
 
-### 2. Instalar dependencias
-
+2. Install dependencies.
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configurar API Keys
-
-Crea un archivo `.env` en el directorio raíz con tus claves API:
-
+3. Configure environment variables.
 ```bash
-echo 'GOOGLE_API_KEY="tu_clave_de_google"' > .env
-echo 'ASTROMETRY_API_KEY="tu_clave_de_astrometry"' >> .env
+cp .env.default .env
 ```
 
-**Obtener las claves:**
-- **Google API Key** (para Gemini): https://aistudio.google.com/app/apikey
-- **Astrometry.net API Key** (para plate solving): https://nova.astrometry.net/api_help
-
-### Configuración opcional (variables de entorno)
-
+4. Run the API server.
 ```bash
-# Timeout para plate solving en segundos (default: 120)
-ASTROMETRY_TIMEOUT=180
-
-# Usar cache de plate solving (default: true)
-ASTROMETRY_USE_CACHE=true
-
-# Directorio para cache (default: directorio temporal del sistema)
-ASTROMETRY_CACHE_DIR=/path/to/cache
+python -m src.api.server
 ```
 
-## 🎮 Uso
+The API listens on `http://localhost:8000` by default.
 
-### Ejecutar con interfaz web (recomendado)
+## Configuration
 
+The backend reads configuration from environment variables or `.env` using `python-dotenv`. Copy `.env.default` and adjust as needed.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `GOOGLE_API_KEY` | (empty) | Required for Gemini narration and TTS |
+| `GEMINI_API_KEY` | (empty) | Optional alias for Gemini key used in config resolution |
+| `GOOGLE_CSE_ID` | (empty) | Required for Google Custom Search (if used) |
+| `ASTROMETRY_API_KEY` | (empty) | Required when `PLATE_SOLVING_METHOD=astrometry_net` |
+| `ASTROMETRY_API_URL` | `http://ec2-3-145-73-178.us-east-2.compute.amazonaws.com/solve` | Remote plate-solving endpoint for `custom_remote` |
+| `PLATE_SOLVING_METHOD` | `custom_remote` | `custom_remote` or `astrometry_net` |
+| `PLATE_SOLVING_TIMEOUT` | `30` | Plate-solving timeout (seconds) |
+| `PLATE_SOLVING_USE_CACHE` | `false` | Cache WCS results (case-sensitive string check in code) |
+| `WEBCAM_INDEX` | `0` | Camera index for capture scripts |
+| `OBJECT_DETECTOR` | `contrast_detector` | Detection strategy (current implementation) |
+| `MAX_QUERY_OBJECTS` | `10` | Max objects to query from SIMBAD |
+| `SIMBAD_SEARCH_RADIUS` | `10` | Radius in arcseconds |
+| `LOGS_DIR` | `logs` | Directory for logs and artifacts |
+| `STORAGE_DIR` | `/mnt/data` | Storage root for audio and cache |
+| `VERBOSE` | `True` | Verbose logging toggle |
+| `TEST_MODE` | `false` | Skip Gemini identification step in `/analyze` |
+| `API_HOST` | `0.0.0.0` | API host bind address |
+| `API_PORT` | `8000` | API port |
+| `PUBLIC_API_URL` | `http://localhost:8000` | Base URL used for audio links |
+
+Notes:
+- The code treats `PLATE_SOLVING_USE_CACHE` and `VERBOSE` as case-sensitive checks. Use `True`/`False` or `true`/`false` consistently as shown in `.env.default`.
+- Audio files are written to `${STORAGE_DIR}/audios/`.
+
+## API
+
+Base URL: `http://localhost:8000`
+
+Endpoints:
+- `GET /` health check
+- `POST /analyze` analyze image (SSE)
+- `GET /audio/{filename}` download generated WAV audio
+- `GET /a2a/...` A2A agent interface (mounted sub-app)
+
+OpenAPI spec is available at `docs/openapi.yaml`.
+
+### `/analyze` SSE events
+
+The response is a stream of SSE events. Event names:
+- `analyzing_image`
+- `analysis_complete` with `plate_solving` and `identified_objects`
+- `generating_narration`
+- `narration_complete` with `title`, `text`, and `object_legends`
+- `generating_audio`
+- `audio_complete` with `audio_url`
+- `error` with error details
+
+Example:
 ```bash
-adk web --port 8000
+curl -N -X POST \
+  -F "image=@/path/to/your_image.jpg" \
+  -F "language=es" \
+  http://localhost:8000/analyze
 ```
 
-Luego abre http://localhost:8000 en tu navegador, selecciona el agente `astro_guide` y empieza a chatear.
+## Agents
 
-### Ejecutar desde línea de comandos
+The repository provides two Google ADK agents:
+- `astro_guide` for image-based sky narration and object context
+- `observation_planner` for planning observation sessions
 
+Run the ADK web UI (optional):
+```bash
+adk web --port 8001
+```
+
+Run an agent directly:
 ```bash
 adk run astro_guide
 ```
 
-## 💬 Cómo Usar
+## Scripts
 
-1. Toma una foto con tu telescopio o cámara astronómica
-2. Pregúntale al agente: *"¿Qué estoy viendo?"* adjuntando tu imagen
-3. El agente analizará la imagen, identificará los objetos y te contará su historia
+- `scripts/run_capture_sky.py` capture a webcam frame and run analysis
+- `scripts/complete_cache.py` fill missing SIMBAD details in cached results
+- `scripts/deploy.sh` deployment helper (see Terraform section)
 
-### Ejemplo de conversación:
-
-**Tú:** ¿Qué estoy viendo? [adjunta imagen]
-
-**AstroGuide:** ¡Bienvenido a uno de los rincones más espectaculares del cielo invernal! 
-Tu telescopio está apuntando hacia la constelación de Orión, específicamente a una región 
-cercana al famoso Cinturón del Cazador...
-
-*[El agente continúa con una narrativa fascinante sobre los objetos identificados]*
-
-## 📁 Estructura del Proyecto
-
-```
-AstroIA/
-├── astro_guide/           # Agente ADK
-│   ├── agent.py           # Definición del agente y herramientas
-│   └── __init__.py
-├── annotator.py           # Módulo de análisis de imágenes
-├── requirements.txt       # Dependencias
-├── .env                   # Claves API (crear manualmente)
-└── README.md
+List available cameras:
+```bash
+python scripts/run_capture_sky.py --list-cameras
 ```
 
-## 🛠️ Herramientas del Agente
-
-### `analyze_telescope_image`
-Analiza una imagen de telescopio usando plate-solving (Astrometry.net) y consulta catálogos astronómicos (SIMBAD, Hipparcos, NGC) para identificar todos los objetos visibles.
-
-**Parámetros:**
-- `image`: Imagen PIL del telescopio
-- `search_radius`: Radio de búsqueda en grados (auto-calculado si no se especifica)
-- `magnitude_limit`: Magnitud límite para objetos (default: 12.0)
-
-**Retorna:**
-- `success`: Si el análisis fue exitoso
-- `annotated_image`: Imagen PIL anotada con los objetos marcados
-- `plate_solving`: Coordenadas del centro (RA/DEC), campo de visión, escala de píxel
-- `objects`: Lista de objetos con nombre, tipo, magnitud, tipo espectral, distancia
-
-### `google_search`
-Busca información adicional en internet sobre objetos celestes, constelaciones, mitología, y descubrimientos recientes.
-
-## 📚 Uso del Módulo Annotator
-
-El módulo `annotator.py` puede usarse de forma independiente:
-
-```python
-from annotator import analyze_image
-from PIL import Image
-
-# Cargar imagen
-img = Image.open("telescope_capture.png")
-
-# Analizar
-result = analyze_image(img, radius=1.5, mag_limit=10.0)
-
-if result["success"]:
-    # Imagen anotada
-    annotated = result["annotated_image"]
-    annotated.save("annotated.png")
-    
-    # Información de objetos
-    print(f"Centro: {result['plate_solving']['center']['ra_hms']}")
-    print(f"Objetos: {result['objects']['count']}")
-    
-    for obj in result["objects"]["items"]:
-        print(f"  - {obj['name']} ({obj['type']})")
+Capture a single frame:
+```bash
+python scripts/run_capture_sky.py --capture --camera-index 0 --output captured.png
 ```
 
-## 🌟 Tips
+## Docker
 
-- **Imágenes de buena calidad**: El plate-solving funciona mejor con imágenes nítidas que muestren suficientes estrellas
-- **Tiempo de análisis**: La primera vez que analices una imagen puede tomar 1-2 minutos mientras Astrometry.net resuelve las coordenadas (luego se cachea)
-- **Magnitud límite**: Ajusta `magnitude_limit` según necesites más objetos (valores altos) o solo los brillantes (valores bajos)
+Build and run locally:
+```bash
+docker build -t AstroAI-backend .
+docker run --rm -p 8080:8080 --env-file .env AstroAI-backend
+```
 
-## 📝 Licencia
+Note: The container listens on `API_PORT`, and Terraform config sets it to `8080` for Cloud Run.
 
-MIT
+## Deployment (GCP Cloud Run)
 
----
+The `Makefile` and `terraform/` directory automate deployment.
 
-*"El universo no solo es más extraño de lo que suponemos, sino más extraño de lo que podemos suponer."* - J.B.S. Haldane
+Typical flow:
+```bash
+make check-env
+make check-tfvars
+make setup-registry
+make setup-bucket
+make deploy
+```
 
+Terraform expects a `terraform/terraform.tfvars` file. Use `terraform/terraform.tfvars.example` as a template.
+
+## Testing
+
+Run unit tests:
+```bash
+python -m unittest discover -s tests
+```
+
+## Project structure
+
+```
+.
+├── agents/                 ADK agent definitions
+├── docs/                   OpenAPI spec
+├── scripts/                Utility scripts
+├── src/                     API, services, tools
+├── terraform/              Cloud Run infrastructure
+├── tests/                  Unit tests
+├── Dockerfile
+├── Makefile
+└── requirements.txt
+```
+
+## License
+
+No explicit license file is present in this repository. If you intend to open-source or redistribute, add a `LICENSE` file and update this section.
