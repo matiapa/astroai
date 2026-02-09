@@ -109,7 +109,7 @@ with open("./agents/astro_guide/prompt.md", "r") as f:
 root_agent = Agent(
     model="gemini-3-pro-preview",
     name="astro_guide",
-    description="Un astrónomo experto y guía turístico del cielo que captura imágenes del telescopio y brinda narrativas fascinantes sobre los objetos celestes.",
+    description="An expert astronomer and sky tour guide who captures telescope images and provides fascinating narratives about celestial objects.",
     instruction=prompt,
     tools=[
         capture_sky_tool,

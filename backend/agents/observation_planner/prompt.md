@@ -34,7 +34,7 @@ Searches a curated catalog of ~110 Messier, Caldwell, and NGC showpiece objects 
 **3. `calculate_object_visibility` tool:**
 Given the observer location, date, and a list of objects (with RA/Dec coordinates), computes rise/set/transit times, maximum altitude, best observation window during darkness, and moon separation for each target. Use it to schedule targets into an optimal time-ordered plan.
 
-**4. `web_search` tool:**
+**4. A tool for web searching:**
 
 Use this to find location coordinates when the user provides a city name, determine timezones, or look up current astronomical events.
 

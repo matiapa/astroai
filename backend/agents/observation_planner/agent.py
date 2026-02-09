@@ -41,7 +41,7 @@ with open("./agents/observation_planner/prompt.md", "r") as f:
 root_agent = Agent(
     model="gemini-3-flash-preview",
     name="observation_planner",
-    description="Un planificador de observaciones astronómicas que ayuda a los usuarios a crear planes de observación personalizados basados en su ubicación, equipo e intereses.",
+    description="An astronomical observation planner that helps users create personalized observation plans based on their location, equipment, and interests.",
     instruction=prompt,
     tools=[
         search_tool,
