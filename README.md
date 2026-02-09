@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/assets/images/banner.png" width="75%" alt="AstroAI Logo">
+  <img src="https://i.ibb.co/kV5H93cj/banner-en.png" width="100%" alt="AstroAI Logo">
 </p>
 
 # AstroAI: Your AI Copilot for the Night Sky
