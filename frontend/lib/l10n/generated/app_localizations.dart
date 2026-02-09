@@ -587,7 +587,7 @@ abstract class AppLocalizations {
   /// Third suggested chat prompt
   ///
   /// In en, this message translates to:
-  /// **'How can I photograph the Milky Way?'**
+  /// **'I want to plan an observation for tonight'**
   String get chatSuggestion3;
 
   /// Welcome message shown in the results chat screen
@@ -595,6 +595,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I have context about your sky analysis. Ask me anything about the objects identified in your image!'**
   String get chatResultsWelcome;
+
+  /// No description provided for @deleteChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Conversation'**
+  String get deleteChatTitle;
+
+  /// No description provided for @deleteChatMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this conversation? This action cannot be undone.'**
+  String get deleteChatMessage;
+
+  /// No description provided for @deleteChatTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete conversation'**
+  String get deleteChatTooltip;
 
   /// Generic go back button label
   ///

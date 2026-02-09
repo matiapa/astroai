@@ -122,6 +122,7 @@ from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
 from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
 
 from google.adk.a2a.executor.a2a_agent_executor import A2aAgentExecutor, A2aAgentExecutorConfig
 from google.adk.a2a.converters.request_converter import convert_a2a_request_to_agent_run_request
@@ -176,6 +177,13 @@ _request_handler = DefaultRequestHandler(
 
 # Empty Starlette app — routes are added during startup via setup_a2a()
 a2a_app = Starlette()
+a2a_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def setup_a2a():

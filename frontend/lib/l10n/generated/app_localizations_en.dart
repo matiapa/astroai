@@ -273,11 +273,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatSuggestion2 => 'Tell me about the Orion Nebula';
 
   @override
-  String get chatSuggestion3 => 'How can I photograph the Milky Way?';
+  String get chatSuggestion3 => 'I want to plan an observation for tonight';
 
   @override
   String get chatResultsWelcome =>
       'I have context about your sky analysis. Ask me anything about the objects identified in your image!';
+
+  @override
+  String get deleteChatTitle => 'Delete Conversation';
+
+  @override
+  String get deleteChatMessage =>
+      'Are you sure you want to delete this conversation? This action cannot be undone.';
+
+  @override
+  String get deleteChatTooltip => 'Delete conversation';
 
   @override
   String get goBack => 'Go back';

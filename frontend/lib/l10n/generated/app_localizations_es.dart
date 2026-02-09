@@ -280,6 +280,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tengo contexto sobre tu análisis del cielo. ¡Pregúntame lo que quieras sobre los objetos identificados en tu imagen!';
 
   @override
+  String get deleteChatTitle => 'Eliminar conversación';
+
+  @override
+  String get deleteChatMessage =>
+      '¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer.';
+
+  @override
+  String get deleteChatTooltip => 'Eliminar conversación';
+
+  @override
   String get goBack => 'Volver';
 
   @override

@@ -146,7 +146,6 @@ class _MainChatScreenState extends State<MainChatScreen> {
   /// Opens a bottom sheet listing past main-chat sessions.
   void _showHistory(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final sessions = chatSessionServiceInstance.getMainChatSessions();
 
     showModalBottomSheet(
       context: context,
@@ -155,89 +154,152 @@ class _MainChatScreenState extends State<MainChatScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.textMuted,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                child: Text(
-                  l10n.chatHistory,
-                  style: AppTextStyles.headline(fontSize: 16),
-                ),
-              ),
-              if (sessions.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    l10n.chatNoHistory,
-                    style: AppTextStyles.body(color: AppColors.textMuted),
-                  ),
-                )
-              else
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(ctx).size.height * 0.4,
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: sessions.length,
-                    itemBuilder: (_, i) {
-                      final s = sessions[i];
-                      final isActive = s.id == _session?.id;
-                      return ListTile(
-                        leading: Icon(
-                          isActive
-                              ? Icons.chat_bubble
-                              : Icons.chat_bubble_outline,
-                          color: isActive
-                              ? AppColors.cyanAccent
-                              : AppColors.textSecondary,
-                          size: 20,
-                        ),
-                        title: Text(
-                          s.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final sessions = chatSessionServiceInstance.getMainChatSessions();
+
+            Future<void> deleteSession(ChatSession session) async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) {
+                  return AlertDialog(
+                    backgroundColor: AppColors.surface,
+                    title: Text(
+                      l10n.deleteChatTitle,
+                      style: AppTextStyles.headline(fontSize: 16),
+                    ),
+                    content: Text(
+                      l10n.deleteChatMessage,
+                      style: AppTextStyles.body(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(false),
+                        child: Text(
+                          l10n.cancelButton,
                           style: AppTextStyles.body(
-                            color: isActive
-                                ? AppColors.cyanAccent
-                                : AppColors.textPrimary,
+                            color: AppColors.textSecondary,
                           ),
                         ),
-                        subtitle: Text(
-                          _formatDate(s.updatedAt),
-                          style: AppTextStyles.technical(
-                            fontSize: 11,
-                            color: AppColors.textMuted,
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(true),
+                        child: Text(
+                          l10n.deleteButton,
+                          style: AppTextStyles.body(
+                            color: AppColors.error,
                           ),
                         ),
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          if (!isActive) {
-                            _switchToSession(s);
-                          }
-                        },
-                      );
-                    },
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (confirmed != true) return;
+
+              await chatSessionServiceInstance.deleteSession(session.id);
+              if (session.id == _session?.id) {
+                _startFreshSession();
+              }
+              setModalState(() {});
+            }
+
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textMuted,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      l10n.chatHistory,
+                      style: AppTextStyles.headline(fontSize: 16),
+                    ),
+                  ),
+                  if (sessions.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        l10n.chatNoHistory,
+                        style: AppTextStyles.body(color: AppColors.textMuted),
+                      ),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(ctx).size.height * 0.4,
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: sessions.length,
+                        itemBuilder: (_, i) {
+                          final s = sessions[i];
+                          final isActive = s.id == _session?.id;
+                          return ListTile(
+                            leading: Icon(
+                              isActive
+                                  ? Icons.chat_bubble
+                                  : Icons.chat_bubble_outline,
+                              color: isActive
+                                  ? AppColors.cyanAccent
+                                  : AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            title: Text(
+                              s.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.body(
+                                color: isActive
+                                    ? AppColors.cyanAccent
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _formatDate(s.updatedAt),
+                              style: AppTextStyles.technical(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              color: AppColors.textSecondary,
+                              tooltip: l10n.deleteChatTooltip,
+                              onPressed: () => deleteSession(s),
+                            ),
+                            onTap: () {
+                              Navigator.of(ctx).pop();
+                              if (!isActive) {
+                                _switchToSession(s);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
         );
       },
     );

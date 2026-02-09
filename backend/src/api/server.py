@@ -40,7 +40,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # Wildcard origins are not compatible with credentials in browsers.
+    # A2A and analyze endpoints do not require cookies.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
