@@ -76,45 +76,91 @@ class ResponsiveScaffold extends StatelessWidget {
   }
 
   Widget _buildDesktopLayout(BuildContext context, int currentIndex) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isExtended = width >= 600;
+
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
             selectedIndex: currentIndex,
             onDestinationSelected: (index) => _onNavigate(context, index),
-            labelType: NavigationRailLabelType.all,
+            labelType: isExtended
+                ? NavigationRailLabelType.none
+                : NavigationRailLabelType.all,
+            extended: isExtended,
+            minWidth: 80,
+            minExtendedWidth: 280,
             leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Icon(
-                Icons.auto_awesome,
-                color: AppColors.cyanAccent,
-                size: 32,
+              padding: EdgeInsets.symmetric(
+                vertical: 32,
+                horizontal: isExtended ? 24 : 8,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.cyanAccent,
+                    size: 32,
+                  ),
+                  if (isExtended) ...[
+                    const SizedBox(width: 16),
+                    Text(
+                      'ASTRO IA',
+                      style: AppTextStyles.technical(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             destinations: [
               NavigationRailDestination(
-                icon: FaIcon(FontAwesomeIcons.binoculars, size: 20),
-                selectedIcon: FaIcon(FontAwesomeIcons.binoculars, size: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                icon: const FaIcon(FontAwesomeIcons.binoculars, size: 20),
+                selectedIcon: const FaIcon(
+                  FontAwesomeIcons.binoculars,
+                  size: 20,
+                ),
                 label: Text(AppLocalizations.of(context)!.navObservatory),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.history_outlined),
-                selectedIcon: Icon(Icons.history),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                icon: const Icon(Icons.history_outlined),
+                selectedIcon: const Icon(Icons.history),
                 label: Text(AppLocalizations.of(context)!.navLog),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.auto_awesome_outlined),
-                selectedIcon: Icon(Icons.auto_awesome),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                icon: const Icon(Icons.auto_awesome_outlined),
+                selectedIcon: const Icon(Icons.auto_awesome),
                 label: Text(AppLocalizations.of(context)!.navChat),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                icon: const Icon(Icons.settings_outlined),
+                selectedIcon: const Icon(Icons.settings),
                 label: Text(AppLocalizations.of(context)!.navSettings),
               ),
             ],
           ),
-          const VerticalDivider(width: 1, thickness: 1),
+          Container(width: 1, color: AppColors.surfaceElevated),
           Expanded(child: child),
         ],
       ),

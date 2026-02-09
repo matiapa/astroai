@@ -1,7 +1,7 @@
 {
     "@@locale": "es",
     "settingsTitle": "Ajustes",
-    "appTitle": "AstroGuía",
+    "appTitle": "AstroAI",
     "settingsPlaybackSection": "REPRODUCCIÓN",
     "settingsAutoPlay": "Reproducción automática",
     "settingsAutoPlaySubtitle": "Reproducir audio automáticamente tras análisis",

@@ -50,25 +50,23 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: SettingsScreen()),
         ),
+        GoRoute(
+          path: '/results/:id',
+          name: 'results',
+          pageBuilder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return NoTransitionPage(child: ResultsScreen(analysisId: id));
+          },
+        ),
+        GoRoute(
+          path: '/chat/:id',
+          name: 'results_chat',
+          pageBuilder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return NoTransitionPage(child: ResultsChatScreen(analysisId: id));
+          },
+        ),
       ],
-    ),
-    // Results screen (outside shell route - no bottom nav)
-    GoRoute(
-      path: '/results/:id',
-      name: 'results',
-      builder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return ResultsScreen(analysisId: id);
-      },
-    ),
-    // Results chat screen (outside shell route - no bottom nav)
-    GoRoute(
-      path: '/chat/:id',
-      name: 'results_chat',
-      builder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return ResultsChatScreen(analysisId: id);
-      },
     ),
   ],
 );

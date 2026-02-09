@@ -56,12 +56,13 @@ abstract class AppTextStyles {
     double fontSize = 14,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.cyanAccent,
+    double? letterSpacing,
   }) {
     return GoogleFonts.jetBrainsMono(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
-      letterSpacing: 0.5,
+      letterSpacing: letterSpacing ?? 0.5,
     );
   }
 
@@ -165,12 +166,26 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
-      navigationRailTheme: const NavigationRailThemeData(
+      navigationRailTheme: NavigationRailThemeData(
         backgroundColor: AppColors.surface,
-        selectedIconTheme: IconThemeData(color: AppColors.cyanAccent),
-        unselectedIconTheme: IconThemeData(color: AppColors.textMuted),
-        selectedLabelTextStyle: TextStyle(color: AppColors.cyanAccent),
-        unselectedLabelTextStyle: TextStyle(color: AppColors.textMuted),
+        selectedIconTheme: const IconThemeData(
+          color: AppColors.cyanAccent,
+          size: 24,
+        ),
+        unselectedIconTheme: const IconThemeData(
+          color: AppColors.textMuted,
+          size: 24,
+        ),
+        selectedLabelTextStyle: AppTextStyles.label(
+          color: AppColors.cyanAccent,
+        ),
+        unselectedLabelTextStyle: AppTextStyles.label(
+          color: AppColors.textMuted,
+        ),
+        indicatorColor: AppColors.cyanAccent.withValues(alpha: 0.1),
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,

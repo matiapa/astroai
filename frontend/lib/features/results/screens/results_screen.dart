@@ -79,30 +79,32 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       });
     });
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: analysisState.when(
-        data: (state) {
-          if (state.result == null || state.imageBytes == null) {
-            return _buildEmptyState(context);
-          }
-          return _buildContent(
-            context,
-            state.result!,
-            state.imageBytes!,
-            isAudioLoading: state.isAudioLoading,
-          );
-        },
-        error: (err, stack) => Center(
-          child: Text(
-            'Error: $err',
-            style: const TextStyle(color: AppColors.error),
-          ),
-        ),
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.cyanAccent),
+    final content = analysisState.when(
+      data: (state) {
+        if (state.result == null || state.imageBytes == null) {
+          return _buildEmptyState(context);
+        }
+        return _buildContent(
+          context,
+          state.result!,
+          state.imageBytes!,
+          isAudioLoading: state.isAudioLoading,
+        );
+      },
+      error: (err, stack) => Center(
+        child: Text(
+          'Error: $err',
+          style: const TextStyle(color: AppColors.error),
         ),
       ),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.cyanAccent),
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: content,
     );
   }
 
@@ -251,52 +253,67 @@ class _HeroImageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaSize = MediaQuery.sizeOf(context);
+    final screenHeight = mediaSize.height;
+    final screenWidth = mediaSize.width;
+    final isDesktop = screenWidth >= 600;
+
     // If we have image dimensions, we can constrain the aspect ratio
     // to match the image, ensuring hotspots align perfectly.
     final double aspectRatio = decodedImage != null
         ? decodedImage!.width / decodedImage!.height
         : 1.0;
 
-    return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: InteractiveViewer(
-        minScale: 1.0,
-        maxScale: 4.0,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // The Image
-            Image.memory(imageBytes, fit: BoxFit.cover),
-            // Hotspots
-            if (decodedImage != null)
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: objects.map((obj) {
-                      final double dx = obj.pixelCoords.x / decodedImage!.width;
-                      final double dy =
-                          obj.pixelCoords.y / decodedImage!.height;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? screenWidth * 0.5 : screenWidth,
+          maxHeight: screenHeight * 0.5,
+        ),
+        child: AspectRatio(
+          aspectRatio: aspectRatio,
+          child: InteractiveViewer(
+            minScale: 1.0,
+            maxScale: 4.0,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // The Image
+                Image.memory(imageBytes, fit: BoxFit.contain),
+                // Hotspots
+                if (decodedImage != null)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: objects.map((obj) {
+                          final double dx =
+                              obj.pixelCoords.x / decodedImage!.width;
+                          final double dy =
+                              obj.pixelCoords.y / decodedImage!.height;
 
-                      // Calculate pixel position in current container
-                      final double x = dx * constraints.maxWidth;
-                      final double y = dy * constraints.maxHeight;
+                          // Calculate pixel position in current container
+                          final double x = dx * constraints.maxWidth;
+                          final double y = dy * constraints.maxHeight;
 
-                      return Positioned(
-                        left: x - 24, // Centered (48/2)
-                        top: y - 24,
-                        child: _Hotspot(object: obj),
+                          return Positioned(
+                            left: x - 24, // Centered (48/2)
+                            top: y - 24,
+                            child: _Hotspot(object: obj),
+                          );
+                        }).toList(),
                       );
-                    }).toList(),
-                  );
-                },
-              ),
-          ],
+                    },
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
+
 
 class _Hotspot extends StatefulWidget {
   final IdentifiedObject object;
