@@ -104,11 +104,7 @@ class Narration {
   /// URL to the audio narration WAV file (null while audio is being generated).
   final String? audioUrl;
 
-  const Narration({
-    required this.title,
-    required this.text,
-    this.audioUrl,
-  });
+  const Narration({required this.title, required this.text, this.audioUrl});
 
   /// Creates a copy with the given fields replaced.
   Narration copyWith({String? title, String? text, String? audioUrl}) {

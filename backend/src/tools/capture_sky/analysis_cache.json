@@ -1,0 +1,578 @@
+{
+    "2310a65583b12762cfc99c03753d4a81": {
+        "plate_solving": {
+            "center_ra_deg": 83.909706,
+            "center_dec_deg": -5.579408,
+            "pixel_scale_arcsec": 5.0
+        },
+        "identified_objects": [
+            {
+                "name": "M42",
+                "pixel_coords": {
+                    "x": 372,
+                    "y": 266,
+                    "radius_pixels": 10
+                },
+                "type": "Deep Sky",
+                "subtype": "HII Region",
+                "celestial_coords": {
+                    "ra_deg": 83.8201,
+                    "dec_deg": -5.3876,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "SRGA J053516.8-052315",
+                    "3C 145",
+                    "4C -05.21",
+                    "CTA  37",
+                    "LBN 209.13-19.35",
+                    "LBN   974",
+                    "M  42",
+                    "MSH 05-0-11",
+                    "Mills 05+0A",
+                    "NAME Great Orion Nebula"
+                ]
+            },
+            {
+                "name": "NGC 1980",
+                "pixel_coords": {
+                    "x": 335,
+                    "y": 176,
+                    "radius_pixels": 10
+                },
+                "type": "Deep Sky",
+                "subtype": "Open Cluster",
+                "celestial_coords": {
+                    "ra_deg": 83.814583,
+                    "dec_deg": -5.929444,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "UBC 208",
+                    "C 0532-059",
+                    "LBN 209.84-19.13",
+                    "LBN   977",
+                    "NGC  1980",
+                    "OCl  529.0",
+                    "[KPR2004b]  76",
+                    "NAME Lower Sword",
+                    "[KPS2012] MWSC 0586"
+                ],
+                "magnitude_visual": 2.5,
+                "distance_lightyears": 1261.2
+            },
+            {
+                "name": "HIP 26345",
+                "pixel_coords": {
+                    "x": 407,
+                    "y": 129,
+                    "radius_pixels": 10
+                },
+                "type": "Deep Sky",
+                "subtype": "bC?",
+                "celestial_coords": {
+                    "ra_deg": 84.148722,
+                    "dec_deg": -6.064751,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 388935529",
+                    "SKY#  9082",
+                    "SV* P   287",
+                    "TD1  4984",
+                    "UBV    5595",
+                    "UBV M  51782",
+                    "WH 350",
+                    "YZ   0  4186",
+                    "YZ  96  1566",
+                    "[SC93b] 332"
+                ],
+                "magnitude_visual": 5.75,
+                "bv_color_index": -0.22,
+                "spectral_type": "B2IV",
+                "distance_lightyears": 1265.3
+            },
+            {
+                "name": "42 Ori",
+                "pixel_coords": {
+                    "x": 206,
+                    "y": 438,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Y*O",
+                "celestial_coords": {
+                    "ra_deg": 83.846519,
+                    "dec_deg": -4.83835,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 427393354",
+                    "WISE J053523.16-045018.2",
+                    "HIP 26237",
+                    "Gaia DR3 3209572852067563392",
+                    "PLX 1277",
+                    "*  42 Ori",
+                    "2E  1374",
+                    "2MASS J05352315-0450180",
+                    "BD-04  1185",
+                    "CEL    828"
+                ],
+                "magnitude_visual": 4.59,
+                "bv_color_index": -0.19,
+                "spectral_type": "B1V+?",
+                "distance_lightyears": 500.5
+            },
+            {
+                "name": "45 Ori",
+                "pixel_coords": {
+                    "x": 268,
+                    "y": 425,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 83.914517,
+                    "dec_deg": -4.856067,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 427396944",
+                    "HIP 26268",
+                    "Gaia DR3 3209571889994878336",
+                    "PLX 1281",
+                    "2MASS J05353948-0451216",
+                    "ADS  4196 A",
+                    "BD-04  1188",
+                    "CCDM J05357-0451A",
+                    "CSI-04  1188  1",
+                    "GC  6945"
+                ],
+                "magnitude_visual": 5.23,
+                "bv_color_index": 0.25,
+                "spectral_type": "A9IV/V",
+                "distance_lightyears": 372.1
+            }
+        ]
+    },
+    "a96ab18cdd9bf93756d625508d0f77fe": {
+        "identified_objects": [
+            {
+                "name": "Hercules Cluster",
+                "pixel_coords": {
+                    "x": 351,
+                    "y": 142,
+                    "radius_pixels": 10
+                },
+                "type": "Deep Sky",
+                "subtype": "ClG",
+                "celestial_coords": {
+                    "ra_deg": 241.3125,
+                    "dec_deg": 17.748611,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "RXGCC 630",
+                    "2E  3577",
+                    "ACO  2151",
+                    "CAN  58",
+                    "CID 58",
+                    "ClG 1603.0+1753",
+                    "FR  98",
+                    "HMS 1603+1755",
+                    "RBS  1553",
+                    "[F81] 340"
+                ]
+            },
+            {
+                "name": "HIP 78690",
+                "pixel_coords": {
+                    "x": 161,
+                    "y": 104,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Variable Star",
+                "celestial_coords": {
+                    "ra_deg": 240.957642,
+                    "dec_deg": 17.802771,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 393721536",
+                    "HIP 78690",
+                    "Gaia DR3 1199946556072571392",
+                    "AG+17 1565",
+                    "AGKR 14329",
+                    "BD+18  3108",
+                    "CSV 101546",
+                    "GC 21591",
+                    "GCRV  9235",
+                    "GSC 01507-00998"
+                ],
+                "magnitude_visual": 6.75,
+                "bv_color_index": 1.21,
+                "spectral_type": "K0",
+                "distance_lightyears": 534.7
+            },
+            {
+                "name": "HIP 78570",
+                "pixel_coords": {
+                    "x": 437,
+                    "y": 320,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 240.655591,
+                    "dec_deg": 18.114008,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 229574571",
+                    "HIP 78570",
+                    "Gaia DR3 1200016233324969344",
+                    "AG+18 1445",
+                    "BD+18  3104",
+                    "GSC 01507-00099",
+                    "HIC  78570",
+                    "N30 3604",
+                    "PPM 131927",
+                    "SAO 101890"
+                ],
+                "magnitude_visual": 7.54,
+                "bv_color_index": 0.2,
+                "spectral_type": "A0",
+                "distance_lightyears": 445.6
+            }
+        ],
+        "plate_solving": {
+            "center_ra_deg": 241.3125,
+            "center_dec_deg": 17.748611,
+            "pixel_scale_arcsec": 5.0
+        }
+    },
+    "1592b7bde60569cf13c0f7c5c32573dd": {
+        "identified_objects": [
+            {
+                "name": "Sombrero Galaxy",
+                "pixel_coords": {
+                    "x": 227,
+                    "y": 209,
+                    "radius_pixels": 10
+                },
+                "type": "Deep Sky",
+                "subtype": "LIN",
+                "celestial_coords": {
+                    "ra_deg": 189.997633,
+                    "dec_deg": -11.623054,
+                    "radius_arcsec": 255.3
+                },
+                "alternative_names": [
+                    "BD-10  3525",
+                    "HD 110124",
+                    "TGSSADR J123959.3-113723",
+                    "CRATES J123959-113709",
+                    "Gaia DR3 3530135742021065472",
+                    "PMN J1239-1137",
+                    "NVSS J123959-113723",
+                    "VCS4 J1239-1137",
+                    "2E  2814",
+                    "EQ 1237-113"
+                ],
+                "magnitude_visual": 8.0,
+                "bv_color_index": 1.55,
+                "morphological_type": "1"
+            },
+            {
+                "name": "HIP 109916",
+                "pixel_coords": {
+                    "x": 472,
+                    "y": 151,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 333.926789,
+                    "dec_deg": 35.564476,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 430852669",
+                    "Gaia DR3 1906323437652011136",
+                    "AG+35 2295",
+                    "BD+34  4638",
+                    "GSC 02741-00772",
+                    "HIC 109916",
+                    "HIP 109916",
+                    "PPM  87588",
+                    "SAO  72184",
+                    "TYC 2741-772-1"
+                ],
+                "magnitude_visual": 8.28,
+                "bv_color_index": 0.12,
+                "spectral_type": "A0",
+                "distance_lightyears": 749.0
+            },
+            {
+                "name": "HIP 109899",
+                "pixel_coords": {
+                    "x": 489,
+                    "y": 143,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 333.891893,
+                    "dec_deg": -8.397842,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 38252753",
+                    "Gaia DR3 2616391792077597824",
+                    "AP J22153405-0823522",
+                    "BD-09  5943",
+                    "GSC 05803-00885",
+                    "HERZ 16319",
+                    "HIC 109899",
+                    "HIP 109899",
+                    "PPM 206158",
+                    "SAO 145975"
+                ],
+                "magnitude_visual": 8.67,
+                "bv_color_index": 0.5,
+                "spectral_type": "F7V",
+                "distance_lightyears": 511.1
+            },
+            {
+                "name": "HIP 61656",
+                "pixel_coords": {
+                    "x": 509,
+                    "y": 135,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 189.583051,
+                    "dec_deg": -11.516947,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 32423262",
+                    "WISEA J123819.94-113100.7",
+                    "HIP 61656",
+                    "Gaia DR3 3530193054064617472",
+                    "BD-10  3512",
+                    "BDS  6225 A",
+                    "CCDM J12384-1131A",
+                    "CSI-10  3512  1",
+                    "FK5 5115",
+                    "GC 17207"
+                ],
+                "magnitude_visual": 7.65,
+                "bv_color_index": 1.45,
+                "spectral_type": "K4III",
+                "distance_lightyears": 1435.7
+            },
+            {
+                "name": "HIP 110365",
+                "pixel_coords": {
+                    "x": 178,
+                    "y": 274,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "PM*",
+                "celestial_coords": {
+                    "ra_deg": 335.301999,
+                    "dec_deg": 8.681384,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 415846623",
+                    "Gaia DR3 2722692571955929728",
+                    "LSPM J2221+0840",
+                    "TYC 1138-420-1",
+                    "ASCC 1088763",
+                    "UCAC2  34944474",
+                    "USNO-B1.0 0986-00615557",
+                    "AG+08 3092",
+                    "HIC 110365",
+                    "HIP 110365"
+                ],
+                "spectral_type": "G0",
+                "distance_lightyears": 295.0
+            }
+        ],
+        "plate_solving": {
+            "center_ra_deg": 189.997633,
+            "center_dec_deg": -11.623054,
+            "pixel_scale_arcsec": 5.0
+        }
+    },
+    "74fb25902d440f634c3cf4c9233db41b": {
+        "identified_objects": [
+            {
+                "name": "Crab Nebula",
+                "pixel_coords": {
+                    "x": 382,
+                    "y": 209,
+                    "radius_pixels": 10
+                },
+                "type": "Deep Sky",
+                "subtype": "SuperNova Remnant",
+                "celestial_coords": {
+                    "ra_deg": 83.6324,
+                    "dec_deg": 22.0174,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "4FGL J0534.5+2201i",
+                    "2AGL J0534+2205",
+                    "eHWC J0534+220",
+                    "2HWC J0534+220",
+                    "3HWC J0534+220",
+                    "1RXS J053431.2+220218",
+                    "SRGA J053431.8+220103",
+                    "PCCS2 030 G184.54-05.78",
+                    "SNR G184.6-05.8",
+                    "1H 0531+219"
+                ]
+            },
+            {
+                "name": "HIP 26328",
+                "pixel_coords": {
+                    "x": 73,
+                    "y": 226,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "SB*",
+                "celestial_coords": {
+                    "ra_deg": 84.109934,
+                    "dec_deg": 21.993113,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "PLX 1275",
+                    "AG+21  541",
+                    "CSI+21   902  1",
+                    "GC  6957",
+                    "GCRV 56372",
+                    "HD  37013",
+                    "HIC  26328",
+                    "PMC 90-93  5651",
+                    "PPM  94553",
+                    "SAO  77313"
+                ],
+                "magnitude_visual": 7.41,
+                "bv_color_index": 0.52,
+                "spectral_type": "F8",
+                "distance_lightyears": 253.1
+            },
+            {
+                "name": "HIP 26240",
+                "pixel_coords": {
+                    "x": 353,
+                    "y": 99,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 83.857954,
+                    "dec_deg": 22.438062,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 437858950",
+                    "HIP 26240",
+                    "Gaia DR3 3403858790078129536",
+                    "2MASS J05352590+2226170",
+                    "AG+22  548",
+                    "AGKR  4969",
+                    "BD+22   952",
+                    "GSC 01309-01716",
+                    "HIC  26240",
+                    "PPM  94528"
+                ],
+                "magnitude_visual": 8.34,
+                "bv_color_index": 0.57,
+                "spectral_type": "F8",
+                "distance_lightyears": 495.4
+            },
+            {
+                "name": "HIP 26187",
+                "pixel_coords": {
+                    "x": 383,
+                    "y": 57,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Star",
+                "celestial_coords": {
+                    "ra_deg": 83.733259,
+                    "dec_deg": 22.568604,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 437842814",
+                    "HIP 26187",
+                    "Gaia DR3 3403875278454296704",
+                    "2MASS J05345599+2234069",
+                    "AG+22  546",
+                    "AGKR  4959",
+                    "BD+22   949",
+                    "GSC 01861-02071",
+                    "HIC  26187",
+                    "PPM  94511"
+                ],
+                "magnitude_visual": 8.51,
+                "bv_color_index": 1.11,
+                "spectral_type": "G5",
+                "distance_lightyears": 984.4
+            },
+            {
+                "name": "HIP 26159",
+                "pixel_coords": {
+                    "x": 368,
+                    "y": 482,
+                    "radius_pixels": 10
+                },
+                "type": "Star",
+                "subtype": "Variable Star",
+                "celestial_coords": {
+                    "ra_deg": 83.652475,
+                    "dec_deg": 21.622265,
+                    "radius_arcsec": 0.0
+                },
+                "alternative_names": [
+                    "TIC 437836201",
+                    "HIP 26159",
+                    "Gaia DR3 3403744028552564224",
+                    "2MASS J05343658+2137203",
+                    "AG+21  535",
+                    "AN 1002.1935",
+                    "BD+21   892",
+                    "CSV 100523",
+                    "GSC 01309-01314",
+                    "HIC  26159"
+                ],
+                "magnitude_visual": 8.77,
+                "bv_color_index": 0.46,
+                "spectral_type": "F5",
+                "distance_lightyears": 313.4
+            }
+        ],
+        "plate_solving": {
+            "center_ra_deg": 83.6324,
+            "center_dec_deg": 22.0174,
+            "pixel_scale_arcsec": 5.0
+        }
+    }
+}

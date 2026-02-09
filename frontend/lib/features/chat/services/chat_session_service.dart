@@ -45,9 +45,7 @@ class ChatSessionService {
   /// Returns `null` if no session exists for that analysis yet.
   ChatSession? getSessionByAnalysisId(String analysisId) {
     try {
-      return box.values.firstWhere(
-        (s) => s.analysisId == analysisId,
-      );
+      return box.values.firstWhere((s) => s.analysisId == analysisId);
     } catch (_) {
       return null;
     }
@@ -56,8 +54,7 @@ class ChatSessionService {
   /// Returns all main-chat sessions (where [analysisId] is null),
   /// sorted newest-first by [updatedAt].
   List<ChatSession> getMainChatSessions() {
-    final sessions =
-        box.values.where((s) => s.analysisId == null).toList();
+    final sessions = box.values.where((s) => s.analysisId == null).toList();
     sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return sessions;
   }

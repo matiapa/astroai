@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:astro_guide/core/theme/app_theme.dart';
 import 'package:astro_guide/features/settings/providers/settings_provider.dart';
@@ -46,20 +47,28 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 32),
 
             // Language section
-             _SectionHeader(title: l10n.settingsLanguageSection),
+            _SectionHeader(title: l10n.settingsLanguageSection),
             const SizedBox(height: 12),
             _SettingsTile(
               icon: Icons.language,
               title: l10n.settingsLanguage,
               trailing: DropdownButton<String>(
                 // Use settings locale or active system locale
-                value: settings.locale ?? Localizations.localeOf(context).languageCode,
+                value:
+                    settings.locale ??
+                    Localizations.localeOf(context).languageCode,
                 dropdownColor: AppColors.surface,
                 style: AppTextStyles.body(),
                 underline: const SizedBox(),
                 items: [
-                  DropdownMenuItem(value: 'en', child: Text(l10n.settingsLanguageEn)),
-                  DropdownMenuItem(value: 'es', child: Text(l10n.settingsLanguageEs)),
+                  DropdownMenuItem(
+                    value: 'en',
+                    child: Text(l10n.settingsLanguageEn),
+                  ),
+                  DropdownMenuItem(
+                    value: 'es',
+                    child: Text(l10n.settingsLanguageEs),
+                  ),
                 ],
                 onChanged: (String? newValue) {
                   if (newValue != null) {
@@ -85,6 +94,20 @@ class SettingsScreen extends ConsumerWidget {
               title: l10n.settingsOpenSourceLicenses,
               onTap: () {
                 showLicensePage(context: context);
+              },
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.image_search_outlined,
+              title: l10n.settingsCatalogSource,
+              subtitle: l10n.settingsCatalogSourceSubtitle,
+              onTap: () async {
+                final url = Uri.parse(
+                  'https://waps.cfa.harvard.edu/microobservatory/MOImageDirectory/ImageDirectory.php#Object_3633',
+                );
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
               },
             ),
           ],
@@ -170,7 +193,7 @@ class _SettingsTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (trailing != null) trailing!,
+              ?trailing,
               if (trailing == null && onTap != null)
                 const Icon(Icons.chevron_right, color: AppColors.textMuted),
             ],

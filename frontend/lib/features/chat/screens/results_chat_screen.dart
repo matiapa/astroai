@@ -63,8 +63,9 @@ class _ResultsChatScreenState extends State<ResultsChatScreen> {
       _analysisTitle = result.narration?.title;
 
       // Check for an existing chat session for this analysis
-      final saved = chatSessionServiceInstance
-          .getSessionByAnalysisId(widget.analysisId);
+      final saved = chatSessionServiceInstance.getSessionByAnalysisId(
+        widget.analysisId,
+      );
 
       if (saved != null && saved.taskIds.isNotEmpty) {
         // Restore the conversation from the server using all task IDs
@@ -144,7 +145,8 @@ class _ResultsChatScreenState extends State<ResultsChatScreen> {
     final buffer = StringBuffer();
 
     buffer.writeln(
-        '[Context: The user is viewing a sky analysis with the following data.]');
+      '[Context: The user is viewing a sky analysis with the following data.]',
+    );
 
     if (result.narration != null) {
       buffer.writeln('Title: ${result.narration!.title}');
@@ -162,10 +164,7 @@ class _ResultsChatScreenState extends State<ResultsChatScreen> {
     if (result.identifiedObjects.isNotEmpty) {
       buffer.writeln('Identified objects:');
       for (final obj in result.identifiedObjects) {
-        final parts = <String>[
-          obj.displayName,
-          'type: ${obj.type}',
-        ];
+        final parts = <String>[obj.displayName, 'type: ${obj.type}'];
         if (obj.distanceLightyears != null) {
           parts.add('distance: ${obj.distanceFormatted}');
         }

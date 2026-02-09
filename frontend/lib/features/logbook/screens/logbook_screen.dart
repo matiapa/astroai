@@ -32,9 +32,12 @@ class _LogbookScreenState extends ConsumerState<LogbookScreen> {
     final filteredEntries = _searchQuery.isEmpty
         ? entries
         : entries
-            .where((entry) =>
-                entry.title.toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
+              .where(
+                (entry) => entry.title.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ),
+              )
+              .toList();
 
     return Scaffold(
       body: SafeArea(
@@ -44,7 +47,10 @@ class _LogbookScreenState extends ConsumerState<LogbookScreen> {
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Text(AppLocalizations.of(context)!.logbookTitle, style: AppTextStyles.display()),
+              child: Text(
+                AppLocalizations.of(context)!.logbookTitle,
+                style: AppTextStyles.display(),
+              ),
             ),
             // Search bar
             Padding(
@@ -175,16 +181,22 @@ class _DiscoveryCard extends ConsumerWidget {
   const _DiscoveryCard({required this.entry});
 
   String _formatDate(BuildContext context, DateTime date) {
-    return DateFormat.yMMMd(AppLocalizations.of(context)!.localeName)
-        .format(date);
+    return DateFormat.yMMMd(
+      AppLocalizations.of(context)!.localeName,
+    ).format(date);
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.deleteLogTitle?? 'Delete Log'),
-        content: Text(AppLocalizations.of(context)!.deleteLogMessage?? 'Are you sure you want to delete this log? This action cannot be undone.'),
+        title: Text(
+          AppLocalizations.of(context)!.deleteLogTitle ?? 'Delete Log',
+        ),
+        content: Text(
+          AppLocalizations.of(context)!.deleteLogMessage ??
+              'Are you sure you want to delete this log? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -192,9 +204,7 @@ class _DiscoveryCard extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.error,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: Text(AppLocalizations.of(context)!.deleteButton),
           ),
         ],

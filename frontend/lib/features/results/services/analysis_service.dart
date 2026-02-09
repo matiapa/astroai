@@ -67,7 +67,8 @@ class AnalysisService {
         ),
       );
 
-      final stream = (response.data.stream as Stream).cast<List<int>>()
+      final stream = (response.data.stream as Stream)
+          .cast<List<int>>()
           .transform(utf8.decoder)
           .transform(const LineSplitter());
 
@@ -99,7 +100,8 @@ class AnalysisService {
                   plateSolving: json['plate_solving'] != null
                       ? PlateSolving.fromJson(json['plate_solving'])
                       : null,
-                  identifiedObjects: (json['identified_objects'] as List?)
+                  identifiedObjects:
+                      (json['identified_objects'] as List?)
                           ?.map((e) => IdentifiedObject.fromJson(e))
                           .toList() ??
                       [],
@@ -116,42 +118,45 @@ class AnalysisService {
               if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
                 final json = _parseJson(dataStr);
                 // Build object legends map
-                final objectLegends =
-                    Map<String, String>.from(json['object_legends'] ?? {});
+                final objectLegends = Map<String, String>.from(
+                  json['object_legends'] ?? {},
+                );
 
                 // Update identified objects with their legends
                 final updatedObjects =
                     currentResult?.identifiedObjects.map((obj) {
-                          final legend = objectLegends[obj.name] ??
-                              objectLegends[obj.displayName];
-                          if (legend != null) {
-                            return IdentifiedObject(
-                              name: obj.name,
-                              type: obj.type,
-                              subtype: obj.subtype,
-                              magnitudeVisual: obj.magnitudeVisual,
-                              bvColorIndex: obj.bvColorIndex,
-                              spectralType: obj.spectralType,
-                              morphologicalType: obj.morphologicalType,
-                              distanceLightyears: obj.distanceLightyears,
-                              alternativeNames: obj.alternativeNames,
-                              celestialCoords: obj.celestialCoords,
-                              pixelCoords: obj.pixelCoords,
-                              legend: legend,
-                            );
-                          }
-                          return obj;
-                        }).toList() ??
-                        [];
+                      final legend =
+                          objectLegends[obj.name] ??
+                          objectLegends[obj.displayName];
+                      if (legend != null) {
+                        return IdentifiedObject(
+                          name: obj.name,
+                          type: obj.type,
+                          subtype: obj.subtype,
+                          magnitudeVisual: obj.magnitudeVisual,
+                          bvColorIndex: obj.bvColorIndex,
+                          spectralType: obj.spectralType,
+                          morphologicalType: obj.morphologicalType,
+                          distanceLightyears: obj.distanceLightyears,
+                          alternativeNames: obj.alternativeNames,
+                          celestialCoords: obj.celestialCoords,
+                          pixelCoords: obj.pixelCoords,
+                          legend: legend,
+                        );
+                      }
+                      return obj;
+                    }).toList() ??
+                    [];
 
-                currentResult = (currentResult ?? const AnalysisResult(success: true))
-                    .copyWith(
-                  narration: Narration(
-                    title: json['title'] ?? '',
-                    text: json['text'] ?? '',
-                  ),
-                  identifiedObjects: updatedObjects,
-                );
+                currentResult =
+                    (currentResult ?? const AnalysisResult(success: true))
+                        .copyWith(
+                          narration: Narration(
+                            title: json['title'] ?? '',
+                            text: json['text'] ?? '',
+                          ),
+                          identifiedObjects: updatedObjects,
+                        );
                 yield AnalysisStep.narrationComplete;
                 yield currentResult;
               }
@@ -222,7 +227,9 @@ class AnalysisService {
 
     // Step 5: Generating audio (continues in background while user views results)
     yield AnalysisStep.generatingAudio;
-    await Future.delayed(const Duration(seconds: 3)); // Longer delay to show loading indicator
+    await Future.delayed(
+      const Duration(seconds: 3),
+    ); // Longer delay to show loading indicator
 
     // Step 6: Audio complete - yield final result with audio URL
     yield AnalysisStep.finished;

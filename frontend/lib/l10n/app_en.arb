@@ -47,6 +47,14 @@
     "@settingsOpenSourceLicenses": {
         "description": "Label for open source licenses link"
     },
+    "settingsCatalogSource": "Image Assets Source",
+    "@settingsCatalogSource": {
+        "description": "Label for catalog images source"
+    },
+    "settingsCatalogSourceSubtitle": "Harvard MicroObservatory Images Directory",
+    "@settingsCatalogSourceSubtitle": {
+        "description": "Subtitle for catalog images source"
+    },
 
     "analysisFailed": "Analysis failed: {error}",
     "@analysisFailed": {

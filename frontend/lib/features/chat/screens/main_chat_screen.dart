@@ -170,8 +170,10 @@ class _MainChatScreenState extends State<MainChatScreen> {
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Text(
                   l10n.chatHistory,
                   style: AppTextStyles.headline(fontSize: 16),
@@ -182,8 +184,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
                   padding: const EdgeInsets.all(32),
                   child: Text(
                     l10n.chatNoHistory,
-                    style:
-                        AppTextStyles.body(color: AppColors.textMuted),
+                    style: AppTextStyles.body(color: AppColors.textMuted),
                   ),
                 )
               else
@@ -293,8 +294,10 @@ class _MainChatScreenState extends State<MainChatScreen> {
           ),
           // New conversation
           IconButton(
-            icon: const Icon(Icons.add_comment_outlined,
-                color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.add_comment_outlined,
+              color: AppColors.textSecondary,
+            ),
             tooltip: l10n.chatNewConversation,
             onPressed: () {
               setState(() => _isLoading = true);
@@ -308,13 +311,11 @@ class _MainChatScreenState extends State<MainChatScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(
-                      color: AppColors.cyanAccent),
+                  const CircularProgressIndicator(color: AppColors.cyanAccent),
                   const SizedBox(height: 16),
                   Text(
                     l10n.chatLoadingHistory,
-                    style:
-                        AppTextStyles.body(color: AppColors.textSecondary),
+                    style: AppTextStyles.body(color: AppColors.textSecondary),
                   ),
                 ],
               ),

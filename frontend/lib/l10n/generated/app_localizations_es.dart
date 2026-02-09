@@ -48,6 +48,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsOpenSourceLicenses => 'Licencias de código abierto';
 
   @override
+  String get settingsCatalogSource => 'Origen de Imágenes';
+
+  @override
+  String get settingsCatalogSourceSubtitle =>
+      'Directorio de Imágenes del MicroObservatorio de Harvard';
+
+  @override
   String analysisFailed(Object error) {
     return 'Error de análisis: $error';
   }

@@ -27,9 +27,7 @@ class AnalysisInput {
   final Uint8List? bytes;
   final String? filename;
 
-  AnalysisInput.file(this.file)
-      : bytes = null,
-        filename = null;
+  AnalysisInput.file(this.file) : bytes = null, filename = null;
   AnalysisInput.bytes(this.bytes, this.filename) : file = null;
 }
 
@@ -97,16 +95,20 @@ class AnalysisController extends _$AnalysisController {
       }
 
       // Initialize state with image and first step
-      state = AsyncValue.data(AnalysisState(
-        uid: analysisUid,
-        imageBytes: displayBytes,
-        loadingStep: AnalysisStep.analyzingImage,
-      ));
+      state = AsyncValue.data(
+        AnalysisState(
+          uid: analysisUid,
+          imageBytes: displayBytes,
+          loadingStep: AnalysisStep.analyzingImage,
+        ),
+      );
 
       final stream = input.file != null
           ? service.analyzeImageStream(input.file!)
           : service.analyzeImageBytesStream(
-              input.bytes!, input.filename ?? 'upload.jpg');
+              input.bytes!,
+              input.filename ?? 'upload.jpg',
+            );
 
       await for (final event in stream) {
         if (event is AnalysisStep) {
@@ -123,10 +125,12 @@ class AnalysisController extends _$AnalysisController {
             audioLoading = false;
           }
 
-          state = AsyncValue.data(state.value!.copyWith(
-            loadingStep: event,
-            isAudioLoading: audioLoading,
-          ));
+          state = AsyncValue.data(
+            state.value!.copyWith(
+              loadingStep: event,
+              isAudioLoading: audioLoading,
+            ),
+          );
         } else if (event is AnalysisResult) {
           // Merge with existing result or use as new result
           final currentResult = state.value?.result;
@@ -151,10 +155,12 @@ class AnalysisController extends _$AnalysisController {
           // Determine if audio is still loading
           final isAudioLoading = mergedResult.narration?.audioUrl == null;
 
-          state = AsyncValue.data(state.value!.copyWith(
-            result: mergedResult,
-            isAudioLoading: isAudioLoading,
-          ));
+          state = AsyncValue.data(
+            state.value!.copyWith(
+              result: mergedResult,
+              isAudioLoading: isAudioLoading,
+            ),
+          );
 
           // Save to logbook when narration is available (first result with content)
           if (mergedResult.narration != null && displayBytes.isNotEmpty) {
@@ -189,12 +195,14 @@ class AnalysisController extends _$AnalysisController {
       }
 
       final result = entry.analysisResult.copyWith(uid: uid);
-      state = AsyncValue.data(AnalysisState(
-        uid: uid,
-        result: result,
-        imageBytes: entry.imageBytes,
-        isAudioLoading: false,
-      ));
+      state = AsyncValue.data(
+        AnalysisState(
+          uid: uid,
+          result: result,
+          imageBytes: entry.imageBytes,
+          isAudioLoading: false,
+        ),
+      );
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

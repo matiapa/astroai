@@ -58,12 +58,12 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
     Iterable<ChatMessage>? history,
     String? taskId,
     String? contextId,
-  })  : _agentUrl = agentUrl.replaceAll(RegExp(r'/$'), ''),
-        _dio = Dio(),
-        _initialContext = initialContext,
-        _history = history?.toList() ?? [],
-        _taskId = taskId,
-        _contextId = contextId;
+  }) : _agentUrl = agentUrl.replaceAll(RegExp(r'/$'), ''),
+       _dio = Dio(),
+       _initialContext = initialContext,
+       _history = history?.toList() ?? [],
+       _taskId = taskId,
+       _contextId = contextId;
 
   /// The current A2A task ID, or null if no message has been sent yet.
   String? get taskId => _taskId;
@@ -102,8 +102,11 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
     final llmMessage = ChatMessage.llm();
     _history.addAll([userMessage, llmMessage]);
 
-    final response =
-        _callAgent(prompt, attachments: attachments, updateHistory: true);
+    final response = _callAgent(
+      prompt,
+      attachments: attachments,
+      updateHistory: true,
+    );
 
     yield* response.map((chunk) {
       llmMessage.append(chunk);
@@ -243,9 +246,9 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
   Stream<String> _parseSseStream(Stream<Uint8List> byteStream) async* {
     final lineBuffer = StringBuffer();
 
-    await for (final chunk in byteStream
-        .cast<List<int>>()
-        .transform(utf8.decoder)) {
+    await for (final chunk in byteStream.cast<List<int>>().transform(
+      utf8.decoder,
+    )) {
       lineBuffer.write(chunk);
 
       // Split on any newline variant and process complete lines
@@ -358,8 +361,7 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
       _taskId = result.id;
       _contextId = result.contextId;
 
-      final statusText =
-          _extractAgentTextFromMessage(result.status?.message);
+      final statusText = _extractAgentTextFromMessage(result.status?.message);
 
       final artifactTexts = <String>[];
       if (result.artifacts != null) {
@@ -395,7 +397,7 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
 
     final textParts = message.parts!
         .whereType<A2ATextPart>()
-        .map((part) => part.text)
+        .map((part) => _stripContext(part.text))
         .where((text) => text.isNotEmpty)
         .toList();
 
@@ -403,17 +405,34 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
   }
 
   /// Extracts text from an [A2AMessage]'s parts regardless of role.
-  /// Used by [fetchTaskHistory] where we need both user and agent text.
+  /// Used by [fetchMultiTaskHistory] where we need both user and agent text.
+  ///
+  /// Automatically strips analysis context tags from user messages to keep the
+  /// UI clean while preserving the original intent for the agent.
   String? _extractTextFromMessage(A2AMessage? message) {
     if (message == null || message.parts == null) return null;
 
     final textParts = message.parts!
         .whereType<A2ATextPart>()
-        .map((part) => part.text)
+        .map((part) => _stripContext(part.text))
         .where((text) => text.isNotEmpty)
         .toList();
 
     return textParts.isNotEmpty ? textParts.join('\n') : null;
+  }
+
+  /// Removes internal analysis context blocks from a string.
+  ///
+  /// These blocks are injected by the frontend to provide the agent with
+  /// information about the current view, but should be hidden from the user.
+  String _stripContext(String text) {
+    if (!text.contains('[Context:')) return text;
+
+    final contextRegex = RegExp(
+      r"\[Context:[\s\S]*?\[End of context\. The user's question follows\.\]\n?",
+      dotAll: true,
+    );
+    return text.replaceAll(contextRegex, '').trim();
   }
 
   // ---------------------------------------------------------------------------
@@ -540,8 +559,9 @@ class A2aProvider extends LlmProvider with ChangeNotifier {
 
       if (json.containsKey('error')) {
         final error = json['error'];
-        final errorMsg =
-            error is Map ? (error['message'] ?? 'Unknown error') : 'Unknown';
+        final errorMsg = error is Map
+            ? (error['message'] ?? 'Unknown error')
+            : 'Unknown';
         debugPrint('A2aProvider._fetchSingleTask error for $taskId: $errorMsg');
         return null;
       }

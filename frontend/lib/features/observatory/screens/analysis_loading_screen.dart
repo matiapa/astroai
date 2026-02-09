@@ -11,7 +11,8 @@ class AnalysisLoadingScreen extends ConsumerStatefulWidget {
   const AnalysisLoadingScreen({super.key});
 
   @override
-  ConsumerState<AnalysisLoadingScreen> createState() => _AnalysisLoadingScreenState();
+  ConsumerState<AnalysisLoadingScreen> createState() =>
+      _AnalysisLoadingScreenState();
 }
 
 class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
@@ -48,7 +49,9 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
         error: (error, stack) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.analysisFailed(error)),
+              content: Text(
+                AppLocalizations.of(context)!.analysisFailed(error),
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -59,7 +62,8 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
     });
 
     final state = ref.watch(analysisControllerProvider);
-    final currentStep = state.valueOrNull?.loadingStep ?? AnalysisStep.analyzingImage;
+    final currentStep =
+        state.valueOrNull?.loadingStep ?? AnalysisStep.analyzingImage;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -73,14 +77,11 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
               gradient: RadialGradient(
                 center: Alignment.center,
                 radius: 1.5,
-                colors: [
-                  AppColors.background,
-                  Colors.black,
-                ],
+                colors: [AppColors.background, Colors.black],
               ),
             ),
           ),
-          
+
           SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -89,34 +90,31 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
                 SizedBox(
                   height: 200,
                   width: 200,
-                  child: CustomPaint(
-                    painter: _OrbitPainter(_controller),
-                  ),
+                  child: CustomPaint(painter: _OrbitPainter(_controller)),
                 ),
                 const SizedBox(height: 48),
-                
+
                 // Progress Text
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
                   child: Text(
                     _getStepText(currentStep, l10n),
                     key: ValueKey(currentStep),
-                    style: AppTextStyles.headline(fontSize: 24).copyWith(
-                      color: AppColors.cyanAccent,
-                      letterSpacing: 1.2,
-                    ),
+                    style: AppTextStyles.headline(
+                      fontSize: 24,
+                    ).copyWith(color: AppColors.cyanAccent, letterSpacing: 1.2),
                     textAlign: TextAlign.center,
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Sub-text or explanation
                 Text(
                   _getStepDescription(currentStep, l10n),
                   style: AppTextStyles.body(color: AppColors.textMuted),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: 64),
                 // Linear Progress Indicator
                 Padding(
@@ -152,7 +150,7 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
   }
 
   String _getStepDescription(AnalysisStep step, AppLocalizations l10n) {
-     switch (step) {
+    switch (step) {
       case AnalysisStep.analyzingImage:
         return l10n.identifyingCelestialObjects;
       case AnalysisStep.generatingNarration:
@@ -161,7 +159,7 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen>
         return l10n.preparingAudioGuide;
       case AnalysisStep.finished:
         return l10n.preparingResults;
-       default:
+      default:
         return l10n.pleaseWait;
     }
   }
@@ -182,13 +180,17 @@ class _OrbitPainter extends CustomPainter {
 
     // Draw orbits
     canvas.drawCircle(center, 40, paint);
-    canvas.drawCircle(center, 70, paint..color = AppColors.violetAccent.withOpacity(0.2));
-    
+    canvas.drawCircle(
+      center,
+      70,
+      paint..color = AppColors.violetAccent.withOpacity(0.2),
+    );
+
     // Draw moving planet 1
     final planetPaint = Paint()
       ..style = PaintingStyle.fill
       ..color = AppColors.cyanAccent;
-      
+
     final angle1 = animation.value * 2 * math.pi;
     final planet1X = center.dx + 40 * math.cos(angle1);
     final planet1Y = center.dy + 40 * math.sin(angle1);
@@ -198,13 +200,13 @@ class _OrbitPainter extends CustomPainter {
     final planet2Paint = Paint()
       ..style = PaintingStyle.fill
       ..color = AppColors.violetAccent;
-      
+
     final angle2 = animation.value * 2 * math.pi * 0.7 + 1.0; // Offset start
     final planet2X = center.dx + 70 * math.cos(angle2);
     final planet2Y = center.dy + 70 * math.sin(angle2);
     canvas.drawCircle(Offset(planet2X, planet2Y), 6, planet2Paint);
   }
-  
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

@@ -13,7 +13,7 @@ Stream<dynamic> analyzeImageStreamWeb(
   String filename,
 ) {
   final controller = StreamController<dynamic>();
-  
+
   final formData = html.FormData();
   final blob = html.Blob([Uint8List.fromList(bytes)]);
   formData.appendBlob('image', blob, filename);
@@ -21,7 +21,7 @@ Stream<dynamic> analyzeImageStreamWeb(
   final xhr = html.HttpRequest();
   xhr.open('POST', url);
   xhr.setRequestHeader('Accept', 'text/event-stream');
-  
+
   String processedText = '';
   String? currentEvent;
   String currentData = '';
@@ -30,13 +30,13 @@ Stream<dynamic> analyzeImageStreamWeb(
   void processNewData() {
     final newText = xhr.responseText ?? '';
     if (newText.length <= processedText.length) return;
-    
+
     final newChunk = newText.substring(processedText.length);
     processedText = newText;
-    
+
     // Process the new chunk line by line
     final lines = newChunk.split('\n');
-    
+
     for (final line in lines) {
       final trimmedLine = line.trim();
       if (trimmedLine.startsWith('event:')) {
@@ -50,14 +50,14 @@ Stream<dynamic> analyzeImageStreamWeb(
           currentData,
           currentResult,
         );
-        
+
         if (eventResult != null) {
           for (final item in eventResult.items) {
             controller.add(item);
           }
           currentResult = eventResult.updatedResult;
         }
-        
+
         currentEvent = null;
         currentData = '';
       }
@@ -80,7 +80,7 @@ Stream<dynamic> analyzeImageStreamWeb(
   });
 
   xhr.send(formData);
-  
+
   return controller.stream;
 }
 
@@ -111,8 +111,11 @@ _EventProcessResult? _processEvent(
           plateSolving: json['plate_solving'] != null
               ? PlateSolving.fromJson(json['plate_solving'])
               : null,
-          identifiedObjects: (json['identified_objects'] as List?)
-                  ?.map((e) => IdentifiedObject.fromJson(e as Map<String, dynamic>))
+          identifiedObjects:
+              (json['identified_objects'] as List?)
+                  ?.map(
+                    (e) => IdentifiedObject.fromJson(e as Map<String, dynamic>),
+                  )
                   .toList() ??
               [],
         );
@@ -128,11 +131,15 @@ _EventProcessResult? _processEvent(
       if (dataStr.isNotEmpty && dataStr.startsWith('{')) {
         final json = jsonDecode(dataStr);
         // Build object legends map
-        final objectLegends = Map<String, String>.from(json['object_legends'] ?? {});
+        final objectLegends = Map<String, String>.from(
+          json['object_legends'] ?? {},
+        );
 
         // Update identified objects with their legends
-        final updatedObjects = currentResult?.identifiedObjects.map((obj) {
-              final legend = objectLegends[obj.name] ?? objectLegends[obj.displayName];
+        final updatedObjects =
+            currentResult?.identifiedObjects.map((obj) {
+              final legend =
+                  objectLegends[obj.name] ?? objectLegends[obj.displayName];
               if (legend != null) {
                 return IdentifiedObject(
                   name: obj.name,
@@ -153,13 +160,14 @@ _EventProcessResult? _processEvent(
             }).toList() ??
             [];
 
-        updatedResult = (currentResult ?? const AnalysisResult(success: true)).copyWith(
-          narration: Narration(
-            title: json['title'] ?? '',
-            text: json['text'] ?? '',
-          ),
-          identifiedObjects: updatedObjects,
-        );
+        updatedResult = (currentResult ?? const AnalysisResult(success: true))
+            .copyWith(
+              narration: Narration(
+                title: json['title'] ?? '',
+                text: json['text'] ?? '',
+              ),
+              identifiedObjects: updatedObjects,
+            );
         items.add(AnalysisStep.narrationComplete);
         items.add(updatedResult);
       }

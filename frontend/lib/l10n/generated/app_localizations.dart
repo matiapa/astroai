@@ -170,6 +170,18 @@ abstract class AppLocalizations {
   /// **'Open source licenses'**
   String get settingsOpenSourceLicenses;
 
+  /// Label for catalog images source
+  ///
+  /// In en, this message translates to:
+  /// **'Image Assets Source'**
+  String get settingsCatalogSource;
+
+  /// Subtitle for catalog images source
+  ///
+  /// In en, this message translates to:
+  /// **'Harvard MicroObservatory Images Directory'**
+  String get settingsCatalogSourceSubtitle;
+
   /// No description provided for @analysisFailed.
   ///
   /// In en, this message translates to:

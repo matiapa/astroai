@@ -1,5 +1,3 @@
-
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +28,7 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
   bool _isLoading = false;
-  
+
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
 
@@ -43,11 +41,11 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
   double _maxExposure = 0.0;
   double _currentExposure = 0.0;
 
-  // ISO is simulated on some Android devices by exposure compensation, 
-  // currently we will track it but standard CameraX/Camera2 doesn't always expose raw ISO easily 
+  // ISO is simulated on some Android devices by exposure compensation,
+  // currently we will track it but standard CameraX/Camera2 doesn't always expose raw ISO easily
   // via this plugin. We will use exposure offset which is standard.
   // For the purpose of this task, we will stick to Exposure Offset and Zoom.
-  
+
   @override
   void initState() {
     super.initState();
@@ -84,14 +82,14 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
         _minZoom = 1.0;
         _maxZoom = 1.0;
       }
-      
+
       // Set initial exposure levels (Mobile Only)
       if (!kIsWeb) {
         try {
           _minExposure = await _cameraController!.getMinExposureOffset();
           _maxExposure = await _cameraController!.getMaxExposureOffset();
         } catch (e) {
-           debugPrint('Exposure offset not supported: $e');
+          debugPrint('Exposure offset not supported: $e');
         }
       }
 
@@ -112,7 +110,7 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
   /// Loads an image from assets for the catalog.
   Future<void> _loadCatalogAsset(String assetPath, String name) async {
     try {
-      final bytes = await rootBundle.load('assets/catalog/$assetPath.png');
+      final bytes = await rootBundle.load('assets/catalog/$assetPath.gif');
       setState(() {
         _selectedImageBytes = bytes.buffer.asUint8List();
         _selectedImageName = name;
@@ -121,7 +119,9 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.assetNotFound(assetPath)),
+            content: Text(
+              AppLocalizations.of(context)!.assetNotFound(assetPath),
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -164,7 +164,8 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
         final bytes = await image.readAsBytes();
         setState(() {
           _selectedImageBytes = bytes;
-          _selectedImageName = 'capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          _selectedImageName =
+              'capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
         });
       } catch (e) {
         if (mounted) {
@@ -198,7 +199,9 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.cameraNotAvailable(e)),
+              content: Text(
+                AppLocalizations.of(context)!.cameraNotAvailable(e),
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -230,18 +233,18 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
     if (_selectedImageBytes == null) return;
 
     // Trigger analysis via provider
-    ref.read(analysisControllerProvider.notifier).analyze(
+    ref
+        .read(analysisControllerProvider.notifier)
+        .analyze(
           AnalysisInput.bytes(
             _selectedImageBytes!,
             _selectedImageName ?? 'capture.jpg',
           ),
         );
-    
+
     // Navigate to loading screen immediately
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const AnalysisLoadingScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const AnalysisLoadingScreen()),
     );
   }
 
@@ -286,25 +289,25 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
         children: [
           // Image preview or capture prompt
           if (_selectedImageBytes != null)
-             _ImagePreview(
-                  imageBytes: _selectedImageBytes!,
-                  imageName: _selectedImageName,
-                  onClear: _clearImage,
-                )
+            _ImagePreview(
+              imageBytes: _selectedImageBytes!,
+              imageName: _selectedImageName,
+              onClear: _clearImage,
+            )
           // Live Camera Preview
           else if (_isCameraInitialized && _cameraController != null)
-             Center(
-               child: CameraPreview(
-                 _cameraController!,
-                 child: const _ViewfinderOverlay(),
-               ),
-             )
+            Center(
+              child: CameraPreview(
+                _cameraController!,
+                child: const _ViewfinderOverlay(),
+              ),
+            )
           // Fallback UI if camera not ready
           else
-             _CapturePrompt(
-                isLoading: _isLoading,
-                onCapture: _captureFromCamera,
-              ),
+            _CapturePrompt(
+              isLoading: _isLoading,
+              onCapture: _captureFromCamera,
+            ),
 
           // Controls panel at bottom
           Positioned(
@@ -315,11 +318,13 @@ class _ObservatoryScreenState extends ConsumerState<ObservatoryScreen> {
               hasImage: _selectedImageBytes != null,
               isAnalyzing: isAnalyzing,
               onGalleryPressed: _pickFromGallery,
-              onCapturePressed:
-                  _selectedImageBytes != null ? _analyzeImage : _captureFromCamera,
+              onCapturePressed: _selectedImageBytes != null
+                  ? _analyzeImage
+                  : _captureFromCamera,
               onCatalogPressed: _showCatalog,
               // Pass Camera Controls
-              showCameraControls: _selectedImageBytes == null && _isCameraInitialized,
+              showCameraControls:
+                  _selectedImageBytes == null && _isCameraInitialized,
               currentZoom: _currentZoom,
               minZoom: _minZoom,
               maxZoom: _maxZoom,
@@ -340,10 +345,7 @@ class _CapturePrompt extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onCapture;
 
-  const _CapturePrompt({
-    required this.isLoading,
-    required this.onCapture,
-  });
+  const _CapturePrompt({required this.isLoading, required this.onCapture});
 
   @override
   Widget build(BuildContext context) {
@@ -358,11 +360,20 @@ class _CapturePrompt extends StatelessWidget {
               if (isLoading)
                 const CircularProgressIndicator(color: AppColors.cyanAccent)
               else
-                const Icon(Icons.camera_alt, size: 64, color: AppColors.cyanMuted),
+                const Icon(
+                  Icons.camera_alt,
+                  size: 64,
+                  color: AppColors.cyanMuted,
+                ),
               const SizedBox(height: 16),
               Text(
-                isLoading ? AppLocalizations.of(context)!.openingCamera : AppLocalizations.of(context)!.loadingCamera,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
+                isLoading
+                    ? AppLocalizations.of(context)!.openingCamera
+                    : AppLocalizations.of(context)!.loadingCamera,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
@@ -391,10 +402,7 @@ class _ImagePreview extends StatelessWidget {
         InteractiveViewer(
           minScale: 0.5,
           maxScale: 4.0,
-          child: Image.memory(
-            imageBytes,
-            fit: BoxFit.contain,
-          ),
+          child: Image.memory(imageBytes, fit: BoxFit.contain),
         ),
         // Clear button
         Positioned(
@@ -511,14 +519,14 @@ class _ControlsPanel extends StatelessWidget {
   final VoidCallback onGalleryPressed;
   final VoidCallback onCapturePressed;
   final VoidCallback onCatalogPressed;
-  
+
   // Camera Control Props
   final bool showCameraControls;
   final double currentZoom;
   final double minZoom;
   final double maxZoom;
   final ValueChanged<double> onZoomChanged;
-  
+
   final double currentExposure;
   final double minExposure;
   final double maxExposure;
@@ -564,23 +572,21 @@ class _ControlsPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Camera controls sliders
-          if (hasControls) _CameraControlsSliders(
-            currentZoom: currentZoom,
-            minZoom: minZoom,
-            maxZoom: maxZoom,
-            onZoomChanged: onZoomChanged,
-            currentExposure: currentExposure,
-            minExposure: minExposure,
-            maxExposure: maxExposure,
-            onExposureChanged: onExposureChanged,
-          ),
+          if (hasControls)
+            _CameraControlsSliders(
+              currentZoom: currentZoom,
+              minZoom: minZoom,
+              maxZoom: maxZoom,
+              onZoomChanged: onZoomChanged,
+              currentExposure: currentExposure,
+              minExposure: minExposure,
+              maxExposure: maxExposure,
+              onExposureChanged: onExposureChanged,
+            ),
           if (hasControls) const SizedBox(height: 24),
           // Action buttons row
           if (hasImage)
-            _AnalyzeButton(
-              isLoading: isAnalyzing,
-              onPressed: onCapturePressed,
-            )
+            _AnalyzeButton(isLoading: isAnalyzing, onPressed: onCapturePressed)
           else
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -589,7 +595,8 @@ class _ControlsPanel extends StatelessWidget {
                 _ActionButton(
                   icon: Icons.photo_library_outlined,
                   label: AppLocalizations.of(context)!.galleryButton,
-                  onPressed: onGalleryPressed, // No need to check hasImage here as this branch is only for !hasImage
+                  onPressed:
+                      onGalleryPressed, // No need to check hasImage here as this branch is only for !hasImage
                 ),
                 // Shutter / Analyze button (Capture only here)
                 _ShutterButton(
@@ -656,9 +663,9 @@ class _CameraControlsSliders extends StatelessWidget {
               displayValue: '${currentZoom.toStringAsFixed(1)}x',
               onChanged: onZoomChanged,
             ),
-          
+
           if (canZoom && !kIsWeb) const SizedBox(height: 12),
-          
+
           // Exposure (Hidden on Web)
           if (!kIsWeb) ...[
             _ControlSlider(
@@ -810,8 +817,11 @@ class _ShutterButton extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (isAnalyze ? AppColors.violetAccent : AppColors.cyanAccent)
-                      .withValues(alpha: 0.4),
+                  color:
+                      (isAnalyze
+                              ? AppColors.violetAccent
+                              : AppColors.cyanAccent)
+                          .withValues(alpha: 0.4),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -829,19 +839,21 @@ class _ShutterButton extends StatelessWidget {
                     ),
                   )
                 : isAnalyze
-                    ? const Icon(Icons.auto_awesome, color: Colors.white, size: 32)
-                    : Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.background, width: 3),
-                        ),
-                      ),
+                ? const Icon(Icons.auto_awesome, color: Colors.white, size: 32)
+                : Container(
+                    margin: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.background, width: 3),
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          isAnalyze ? AppLocalizations.of(context)!.analyzeLabel : AppLocalizations.of(context)!.captureLabel,
+          isAnalyze
+              ? AppLocalizations.of(context)!.analyzeLabel
+              : AppLocalizations.of(context)!.captureLabel,
           style: AppTextStyles.technical(
             fontSize: 10,
             color: AppColors.textMuted,
@@ -866,9 +878,19 @@ class _CatalogBottomSheet extends StatelessWidget {
       assetPath: 'orion_nebula',
     ),
     _CatalogItem(
-      name: 'Rigel Centaurus',
-      description: 'Alpha Centauri',
-      assetPath: 'rigel_centaurus',
+      name: 'Crab Nebula',
+      description: 'M1 - Supernova Remnant',
+      assetPath: 'crab_nebula',
+    ),
+    _CatalogItem(
+      name: 'Sombrero Galaxy',
+      description: 'M104 - Spiral Galaxy',
+      assetPath: 'hat_galaxy',
+    ),
+    _CatalogItem(
+      name: 'Hercules Cluster',
+      description: 'M13 - Globular Cluster',
+      assetPath: 'hercules_cluster',
     ),
   ];
 
@@ -957,10 +979,7 @@ class _CatalogCard extends StatelessWidget {
   final _CatalogItem item;
   final VoidCallback onTap;
 
-  const _CatalogCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _CatalogCard({required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -972,7 +991,7 @@ class _CatalogCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.surface),
           image: DecorationImage(
-            image: AssetImage('assets/catalog/${item.assetPath}.png'),
+            image: AssetImage('assets/catalog/${item.assetPath}.gif'),
             fit: BoxFit.cover,
             onError: (_, __) {}, // Gracefully handle errors if any
           ),
@@ -1005,16 +1024,17 @@ class _CatalogCard extends StatelessWidget {
                 children: [
                   Text(
                     item.name,
-                    style: AppTextStyles.label(fontWeight: FontWeight.w600).copyWith(
-                      color: Colors.white,
-                      shadows: [
-                        const Shadow(
-                          offset: Offset(0, 1),
-                          blurRadius: 2,
-                          color: Colors.black,
+                    style: AppTextStyles.label(fontWeight: FontWeight.w600)
+                        .copyWith(
+                          color: Colors.white,
+                          shadows: [
+                            const Shadow(
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                              color: Colors.black,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
@@ -1042,10 +1062,7 @@ class _AnalyzeButton extends StatefulWidget {
   final bool isLoading;
   final VoidCallback onPressed;
 
-  const _AnalyzeButton({
-    required this.isLoading,
-    required this.onPressed,
-  });
+  const _AnalyzeButton({required this.isLoading, required this.onPressed});
 
   @override
   State<_AnalyzeButton> createState() => _AnalyzeButtonState();
@@ -1065,13 +1082,15 @@ class _AnalyzeButtonState extends State<_AnalyzeButton>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.02,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
-    _glowAnimation = Tween<double>(begin: 0.4, end: 0.8).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _glowAnimation = Tween<double>(
+      begin: 0.4,
+      end: 0.8,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1099,8 +1118,9 @@ class _AnalyzeButtonState extends State<_AnalyzeButton>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.violetAccent
-                      .withValues(alpha: _glowAnimation.value),
+                  color: AppColors.violetAccent.withValues(
+                    alpha: _glowAnimation.value,
+                  ),
                   blurRadius: 16 + (8 * _controller.value),
                   spreadRadius: 2 + (2 * _controller.value),
                   offset: const Offset(0, 4),
@@ -1125,18 +1145,24 @@ class _AnalyzeButtonState extends State<_AnalyzeButton>
                       : Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.auto_awesome,
-                                color: Colors.white, size: 24),
+                            const Icon(
+                              Icons.auto_awesome,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                             const SizedBox(width: 12),
                             Text(
-                              AppLocalizations.of(context)!.analyzeWithAi.toUpperCase(),
-                              style: AppTextStyles.label(
-                                      fontWeight: FontWeight.bold)
-                                  .copyWith(
-                                color: Colors.white,
-                                fontSize: 16,
-                                letterSpacing: 1.2,
-                              ),
+                              AppLocalizations.of(
+                                context,
+                              )!.analyzeWithAi.toUpperCase(),
+                              style:
+                                  AppTextStyles.label(
+                                    fontWeight: FontWeight.bold,
+                                  ).copyWith(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    letterSpacing: 1.2,
+                                  ),
                             ),
                           ],
                         ),

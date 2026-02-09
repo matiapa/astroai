@@ -20,7 +20,9 @@ class LogbookService {
   /// Ensures the box is initialized.
   Box<LogbookEntry> get box {
     if (_box == null) {
-      throw StateError('LogbookService not initialized. Call initialize() first.');
+      throw StateError(
+        'LogbookService not initialized. Call initialize() first.',
+      );
     }
     return _box!;
   }

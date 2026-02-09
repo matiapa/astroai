@@ -12,6 +12,8 @@
     "settingsAboutSection": "ACERCA DE",
     "settingsVersion": "Versión {version}",
     "settingsOpenSourceLicenses": "Licencias de código abierto",
+    "settingsCatalogSource": "Origen de Imágenes",
+    "settingsCatalogSourceSubtitle": "Directorio de Imágenes del MicroObservatorio de Harvard",
 
     "analysisFailed": "Error de análisis: {error}",
     "analyzingCosmos": "Analizando el Cosmos",

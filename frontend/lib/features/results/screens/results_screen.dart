@@ -44,12 +44,13 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
 
     // If current in-memory state matches, use it; otherwise load from storage
     if (state?.uid != widget.analysisId || state?.result == null) {
-      ref.read(analysisControllerProvider.notifier).loadFromUid(widget.analysisId);
+      ref
+          .read(analysisControllerProvider.notifier)
+          .loadFromUid(widget.analysisId);
     } else if (state?.imageBytes != null) {
       _decodeImage(state!.imageBytes!);
     }
   }
-
 
   Future<void> _decodeImage(List<int> bytes) async {
     try {
@@ -112,7 +113,10 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         children: [
           const Icon(Icons.broken_image, size: 64, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text(AppLocalizations.of(context)!.noAnalysisDataFound, style: AppTextStyles.headline()),
+          Text(
+            AppLocalizations.of(context)!.noAnalysisDataFound,
+            style: AppTextStyles.headline(),
+          ),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => context.go('/observatory'),
@@ -148,13 +152,17 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: isAudioLoading ? AppColors.cyanAccent : AppColors.success,
+                  color: isAudioLoading
+                      ? AppColors.cyanAccent
+                      : AppColors.success,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                isAudioLoading ? AppLocalizations.of(context)!.generatingAudioStatus : AppLocalizations.of(context)!.analysisCompleteStatus,
+                isAudioLoading
+                    ? AppLocalizations.of(context)!.generatingAudioStatus
+                    : AppLocalizations.of(context)!.analysisCompleteStatus,
                 style: AppTextStyles.technical(
                   fontSize: 12,
                   color: AppColors.textSecondary,
@@ -190,9 +198,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
-                      _ExpandableNarrationText(
-                        text: result.narration!.text,
-                      ),
+                      _ExpandableNarrationText(text: result.narration!.text),
                     ],
                   ),
                 ),
@@ -346,7 +352,8 @@ class _HotspotState extends State<_Hotspot>
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: Tooltip(
-        message: '${widget.object.displayName}\n${AppLocalizations.of(context)!.tapForDetails}',
+        message:
+            '${widget.object.displayName}\n${AppLocalizations.of(context)!.tapForDetails}',
         preferBelow: false,
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -751,10 +758,7 @@ class _AudioLoadingIndicator extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context)!.audioNarrationPending,
-            style: AppTextStyles.body(
-              fontSize: 12,
-              color: AppColors.textMuted,
-            ),
+            style: AppTextStyles.body(fontSize: 12, color: AppColors.textMuted),
           ),
         ],
       ),
@@ -1002,9 +1006,7 @@ class _ExpandableNarrationText extends StatefulWidget {
   final String text;
   static const int trimLength = 300;
 
-  const _ExpandableNarrationText({
-    required this.text,
-  });
+  const _ExpandableNarrationText({required this.text});
 
   @override
   State<_ExpandableNarrationText> createState() =>
@@ -1016,7 +1018,8 @@ class _ExpandableNarrationTextState extends State<_ExpandableNarrationText> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canExpand = widget.text.length > _ExpandableNarrationText.trimLength;
+    final bool canExpand =
+        widget.text.length > _ExpandableNarrationText.trimLength;
     final String displayText = _isExpanded || !canExpand
         ? widget.text
         : '${widget.text.substring(0, _ExpandableNarrationText.trimLength)}...';
@@ -1043,13 +1046,15 @@ class _ExpandableNarrationTextState extends State<_ExpandableNarrationText> {
                 _isExpanded = !_isExpanded;
               });
             },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.cyanAccent,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.cyanAccent),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_isExpanded ? AppLocalizations.of(context)!.viewLess : AppLocalizations.of(context)!.viewMore),
+                Text(
+                  _isExpanded
+                      ? AppLocalizations.of(context)!.viewLess
+                      : AppLocalizations.of(context)!.viewMore,
+                ),
                 const SizedBox(width: 4),
                 Icon(
                   _isExpanded ? Icons.expand_less : Icons.expand_more,
