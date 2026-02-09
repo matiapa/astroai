@@ -85,7 +85,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             _SettingsTile(
               icon: Icons.auto_awesome,
-              title: 'AstroGuide',
+              title: 'AstroAI',
               subtitle: l10n.settingsVersion('0.1.0'),
             ),
             const SizedBox(height: 8),

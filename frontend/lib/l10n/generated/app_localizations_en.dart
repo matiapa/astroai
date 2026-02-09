@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String get appTitle => 'AstroGuide';
+  String get appTitle => 'AstroAI';
 
   @override
   String get settingsPlaybackSection => 'PLAYBACK';

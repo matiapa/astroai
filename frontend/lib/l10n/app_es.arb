@@ -84,7 +84,7 @@
     "chatWelcomeMessage": "¡Hola! Soy Atlas, tu guía de astronomía. Pregúntame lo que quieras sobre el cielo nocturno, constelaciones, planetas o eventos celestes.",
     "chatSuggestion1": "¿Qué constelaciones son visibles esta noche?",
     "chatSuggestion2": "Cuéntame sobre la Nebulosa de Orión",
-    "chatSuggestion3": "¿Cómo puedo fotografiar la Vía Láctea?",
+    "chatSuggestion3": "Quiero planificar una observación para esta noche",
     "chatResultsWelcome": "Tengo contexto sobre tu análisis del cielo. ¡Pregúntame lo que quieras sobre los objetos identificados en tu imagen!",
     "deleteChatTitle": "Eliminar conversación",
     "deleteChatMessage": "¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer.",

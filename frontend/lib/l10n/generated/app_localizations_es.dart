@@ -273,7 +273,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatSuggestion2 => 'Cuéntame sobre la Nebulosa de Orión';
 
   @override
-  String get chatSuggestion3 => '¿Cómo puedo fotografiar la Vía Láctea?';
+  String get chatSuggestion3 =>
+      'Quiero planificar una observación para esta noche';
 
   @override
   String get chatResultsWelcome =>

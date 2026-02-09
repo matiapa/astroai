@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// The name of the application
   ///
   /// In en, this message translates to:
-  /// **'AstroGuide'**
+  /// **'AstroAI'**
   String get appTitle;
 
   /// Header for the playback settings section
