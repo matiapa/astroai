@@ -85,12 +85,10 @@ Defined in `lib/core/config/app_config.dart` and supplied via `--dart-define` or
 | `A2A_AGENT_URL` | `http://localhost:8000/a2a` | A2A agent endpoint |
 | `ENVIRONMENT` | `development` | App environment label |
 | `DEBUG_MODE` | `false` | Enables debug features |
-| `USE_MOCK_DATA` | `false` | Bypass API and return mock results |
 
-## API & Mocking
+## API
 - OpenAPI spec: `api_spec.yaml`
 - Analysis endpoint: `POST /analyze` (SSE stream)
-- Enable mock data by setting `USE_MOCK_DATA=true` in `.env` or via `--dart-define`
 
 ## Localization (i18n)
 - ARB files in `lib/l10n/`

@@ -38,14 +38,6 @@ class AppConfig {
     defaultValue: 'http://localhost:8000/a2a',
   );
 
-  /// Whether to bypass the API and use mock data.
-  ///
-  /// Set via: `--dart-define=USE_MOCK_DATA=true`
-  static const bool useMockData = bool.fromEnvironment(
-    'USE_MOCK_DATA',
-    defaultValue: false,
-  );
-
   /// Whether running in production.
   static bool get isProduction => environment == 'production';
 
